@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Semester schedule dashboard for Gabriel Kwaku Asante - UG CPEN Level 200" />
+  <title>AIGU - Semester OS</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Changa+One:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9;
+      --border: #e2e8f0; --border2: #cbd5e1;
+      --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8;
+      --green: #16a34a; --green-light: #dcfce7; --green-glow: rgba(22,163,74,0.15);
+      --lecture-bg: #eff6ff; --lecture-border: #3b82f6; --lecture-text: #1d4ed8;
+      --lab-bg: #faf5ff;    --lab-border: #a855f7;    --lab-text: #7e22ce;
+      --ml-bg: #fff7ed;     --ml-border: #f97316;     --ml-text: #c2410c;
+      --study-bg: #f0fdf4;  --study-border: #22c55e;  --study-text: #15803d;
+      --routine-bg: #f0f9ff;--routine-border: #0ea5e9; --routine-text: #0369a1;
+      --review-bg: #f8fafc; --review-border: #94a3b8;  --review-text: #475569;
+      --church-bg: #fdf4ff; --church-border: #c026d3;  --church-text: #86198f;
+      --social-bg: #f0fdfa; --social-border: #14b8a6;  --social-text: #0f766e;
+      --flex-bg: #fefce8;   --flex-border: #eab308;    --flex-text: #854d0e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ---- HEADER ---- */
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-strip { background: var(--text); padding: 5px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .header-strip-text { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.5); letter-spacing: 0.12em; text-transform: uppercase; }
+    .header-strip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
+    .header-main { padding: 0 20px; display: flex; align-items: center; height: 60px; gap: 12px; overflow: hidden; }
+    .header-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .header-logo { width: 34px; height: 34px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+    .header-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .header-name { font-family: 'Changa One', sans-serif; font-style: italic; font-size: 20px; color: var(--text); letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
+    .header-name span { color: var(--green); }
+    .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; white-space: nowrap; }
+    .header-divider { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; }
+    .header-meta { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .header-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 9px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-muted); white-space: nowrap; }
+    .header-pill.green { background: var(--green-light); border-color: var(--green); color: var(--green); font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .view-toggle { display: flex; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 2px; flex-shrink: 0; }
+    .view-toggle-btn { display: flex; align-items: center; gap: 5px; padding: 5px 11px; border: none; border-radius: 6px; background: transparent; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); transition: all 0.15s; white-space: nowrap; }
+    .view-toggle-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .view-toggle-btn.active.now-btn { color: var(--green); }
+
+    /* ---- SHELL ---- */
+    .app-shell { padding: 0 24px 80px; }
+    .now-banner { display: none; background: var(--green-light); border: 1px solid var(--green); border-radius: 8px; margin: 12px 16px; padding: 8px 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--green); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ---- NOW VIEW ---- */
+    .now-view { max-width: 640px; margin: 0 auto; padding: 32px 0 80px; }
+    .now-view.hidden { display: none; }
+    .timetable-panels.hidden { display: none; }
+    .now-label { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .now-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-glow); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--green-glow); } 50% { box-shadow: 0 0 0 6px rgba(22,163,74,0.08); } }
+    .now-label-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--green); letter-spacing: 0.1em; text-transform: uppercase; }
+    .now-label-time { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+    .now-block-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px 28px 24px 36px; margin-bottom: 16px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
+    .now-block-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+    .now-block-accent { position: absolute; top: 0; left: 0; bottom: 0; width: 5px; border-radius: 20px 0 0 20px; }
+    .now-block-tag { display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; border-radius: 6px; padding: 3px 10px; margin-bottom: 12px; }
+    .now-block-title { font-family: 'Changa One', sans-serif; font-style: italic; font-size: 32px; line-height: 1.1; color: var(--text); margin-bottom: 6px; letter-spacing: -0.5px; }
+    .now-block-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+    .now-block-time-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .now-block-time-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .now-block-remaining { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text); }
+    .now-progress-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+    .now-progress-fill { height: 100%; border-radius: 3px; transition: width 1s linear; }
+    .now-progress-pct { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); text-align: right; }
+    .now-idle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 48px 28px; text-align: center; margin-bottom: 16px; }
+    .now-idle-icon { margin-bottom: 16px; display: flex; justify-content: center; }
+    .now-idle-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--text); margin-bottom: 6px; }
+    .now-idle-sub { font-size: 13px; color: var(--text-muted); }
+    .now-next-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s; }
+    .now-next-card:hover { border-color: var(--border2); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .now-next-accent { width: 4px; min-height: 40px; border-radius: 2px; flex-shrink: 0; }
+    .now-next-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+    .now-next-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 2px; }
+    .now-next-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .now-next-arrow { margin-left: auto; color: var(--text-dim); flex-shrink: 0; }
+    .now-timetable-btn { display: block; width: 100%; margin-top: 20px; padding: 14px; background: var(--text); color: #fff; border: none; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    .now-timetable-btn:hover { opacity: 0.88; }
+
+    /* ---- WEEK SUMMARY ---- */
+    .week-summary { display: flex; gap: 8px; padding: 16px 0 12px; overflow-x: auto; scrollbar-width: none; }
+    .week-summary::-webkit-scrollbar { display: none; }
+    .day-summary-card { flex: 1; min-width: 64px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .day-summary-card:hover { border-color: var(--border2); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .day-summary-card.today { border-color: var(--green); background: var(--green-light); }
+    .day-summary-name { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .day-summary-card.today .day-summary-name { color: var(--green); }
+    .day-summary-counts { display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .count-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .count-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); }
+
+    /* ---- DESKTOP GRID ---- */
+    .desktop-view { display: block; }
+    .grid-wrapper { overflow-x: auto; }
+    .day-headers { display: flex; position: sticky; top: 60px; z-index: 30; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .day-header-cell { flex: 1; min-width: 100px; padding: 10px 8px; text-align: center; border-right: 1px solid var(--border); }
+    .day-header-cell:last-child { border-right: none; }
+    .day-header-cell.today-col { background: #f0fdf4; }
+    .time-spacer { flex: none; width: 54px; min-width: 54px; }
+    .day-header-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .day-header-cell.today-col .day-header-name { color: var(--green); }
+    .grid-body { display: flex; position: relative; }
+    .time-axis { position: relative; width: 54px; min-width: 54px; flex-shrink: 0; border-right: 1px solid var(--border); }
+    .time-label { position: absolute; right: 8px; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); white-space: nowrap; line-height: 1; }
+    .grid-lines { position: absolute; top: 0; left: 54px; right: 0; pointer-events: none; z-index: 1; }
+    .grid-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--border); }
+    .grid-line.hour { background: var(--border2); }
+    .day-col { flex: 1; min-width: 100px; position: relative; border-right: 1px solid var(--border); overflow: hidden; }
+    .day-col:last-child { border-right: none; }
+    .day-col.today-col { background: #fafffe; }
+
+    /* ---- BLOCKS ---- */
+    .block { position: absolute; left: 3px; right: 3px; border-radius: 6px; border-left-width: 3px; border-left-style: solid; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; padding: 4px 6px; cursor: pointer; overflow: hidden; transition: filter 0.12s, box-shadow 0.12s; z-index: 2; }
+    .block:hover { filter: brightness(0.96); box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; }
+    .block.sacred { border-left-color: var(--green) !important; border-top-color: var(--green) !important; border-right-color: var(--green) !important; border-bottom-color: var(--green) !important; border-width: 1px; border-left-width: 3px; box-shadow: 0 0 8px var(--green-glow); }
+    .block-time { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; opacity: 0.7; line-height: 1.2; white-space: nowrap; overflow: hidden; }
+    .block-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+    .block-sub { font-size: 8.5px; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+    .block-tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600; letter-spacing: 0.06em; background: rgba(255,255,255,0.5); border-radius: 3px; padding: 1px 4px; margin-top: 2px; white-space: nowrap; }
+    .block.sacred .block-tag { background: var(--green-light); color: var(--green); }
+    .block-lecture { background: var(--lecture-bg); border-left-color: var(--lecture-border); color: var(--lecture-text); }
+    .block-lab     { background: var(--lab-bg); border-left-color: var(--lab-border); color: var(--lab-text); }
+    .block-ml      { background: var(--ml-bg); border-left-color: var(--ml-border); color: var(--ml-text); }
+    .block-study   { background: var(--study-bg); border-left-color: var(--study-border); color: var(--study-text); }
+    .block-routine { background: var(--routine-bg); border-left-color: var(--routine-border); color: var(--routine-text); }
+    .block-review  { background: var(--review-bg); border-left-color: var(--review-border); color: var(--review-text); }
+    .block-church  { background: var(--church-bg); border-left-color: var(--church-border); color: var(--church-text); }
+    .block-social  { background: var(--social-bg); border-left-color: var(--social-border); color: var(--social-text); }
+    .block-flex    { background: var(--flex-bg); border-left-color: var(--flex-border); color: var(--flex-text); }
+    .time-indicator { position: absolute; left: 0; right: 0; height: 2px; background: var(--green); z-index: 20; pointer-events: none; }
+    .time-indicator::before { content: ''; position: absolute; left: 0; top: 50%; transform: translate(-50%,-50%); width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+
+    /* ---- MOBILE ---- */
+    .mobile-view { display: none; }
+    .day-tabs { display: flex; gap: 6px; padding: 12px 0; overflow-x: auto; scrollbar-width: none; }
+    .day-tabs::-webkit-scrollbar { display: none; }
+    .day-tab { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); transition: all 0.12s; user-select: none; }
+    .day-tab:hover { border-color: var(--border2); color: var(--text); }
+    .day-tab.active { background: var(--text); border-color: var(--text); color: #fff; }
+    .day-tab.today-tab { border-color: var(--green); }
+    .day-tab.today-tab.active { background: var(--green); border-color: var(--green); }
+    .mobile-day-view { display: none; flex-direction: column; gap: 8px; animation: fadeIn 0.15s ease; }
+    .mobile-day-view.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .mobile-block { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); border-left-width: 4px; padding: 12px 14px; cursor: pointer; transition: box-shadow 0.12s, transform 0.12s; }
+    .mobile-block:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .mobile-block.sacred { border-color: var(--green) !important; box-shadow: 0 0 10px var(--green-glow); }
+    .mobile-block-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+    .mobile-block-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 2px; }
+    .mobile-block-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .mobile-block-tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; border-radius: 4px; padding: 2px 7px; }
+    .mobile-block-lecture { border-left-color: var(--lecture-border); } .mobile-block-tag-lecture { background: var(--lecture-bg); color: var(--lecture-text); }
+    .mobile-block-lab     { border-left-color: var(--lab-border); }     .mobile-block-tag-lab     { background: var(--lab-bg);     color: var(--lab-text); }
+    .mobile-block-ml      { border-left-color: var(--ml-border); }      .mobile-block-tag-ml      { background: var(--ml-bg);      color: var(--ml-text); }
+    .mobile-block-study   { border-left-color: var(--study-border); }   .mobile-block-tag-study   { background: var(--study-bg);   color: var(--study-text); }
+    .mobile-block-routine { border-left-color: var(--routine-border); } .mobile-block-tag-routine { background: var(--routine-bg); color: var(--routine-text); }
+    .mobile-block-review  { border-left-color: var(--review-border); }  .mobile-block-tag-review  { background: var(--review-bg);  color: var(--review-text); }
+    .mobile-block-church  { border-left-color: var(--church-border); }  .mobile-block-tag-church  { background: var(--church-bg);  color: var(--church-text); }
+    .mobile-block-social  { border-left-color: var(--social-border); }  .mobile-block-tag-social  { background: var(--social-bg);  color: var(--social-text); }
+    .mobile-block-flex    { border-left-color: var(--flex-border); }    .mobile-block-tag-flex    { background: var(--flex-bg);    color: var(--flex-text); }
+
+    /* ---- LEGEND ---- */
+    .legend-section { padding: 16px 0 8px; border-top: 1px solid var(--border); margin-top: 16px; }
+    .legend-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .legend-items { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-item span { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-muted); }
+
+    /* ---- MODAL ---- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: flex-end; justify-content: center; animation: overlayIn 0.2s ease; }
+    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-sheet { background: var(--surface); border-radius: 20px 20px 0 0; padding: 28px 28px 40px; width: 100%; max-width: 640px; max-height: 80vh; overflow-y: auto; animation: sheetIn 0.25s cubic-bezier(0.34,1.56,0.64,1); position: relative; }
+    @keyframes sheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 40px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
+    .modal-close { position: absolute; top: 16px; right: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); font-size: 16px; line-height: 1; transition: background 0.12s; }
+    .modal-close:hover { background: var(--border); }
+    .modal-tag { display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; border-radius: 6px; padding: 4px 10px; margin-bottom: 12px; }
+    .modal-title { font-family: 'Changa One', sans-serif; font-style: italic; font-size: 28px; color: var(--text); margin-bottom: 6px; letter-spacing: -0.5px; line-height: 1.1; }
+    .modal-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+    .modal-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .modal-meta-chip { display: flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .modal-sacred-badge { margin-top: 16px; padding: 10px 14px; background: var(--green-light); border: 1px solid var(--green); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 6px; }
+
+    /* ---- FOOTER ---- */
+    .footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 50; }
+    .footer-text { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 900px) {
+      .header-sub { display: none; }
+    }
+    @media (max-width: 767px) {
+      .desktop-view { display: none; }
+      .mobile-view { display: block; }
+      .now-banner { display: block; }
+      .week-summary { display: none; }
+      .app-shell { padding: 0 16px 80px; }
+      .header-meta { display: none; }
+      .header-divider { display: none; }
+      .header-name { font-size: 18px; }
+      .now-block-title { font-size: 24px; }
+    }
+    @media (min-width: 768px) and (max-width: 1100px) {
+      .block-sub { display: none; }
+      .block-title { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+<header class="header">
+  <div class="header-strip">
+    <span class="header-strip-text">University of Ghana &middot; School of Engineering Sciences &middot; CPEN &middot; Level 200 &middot; Sem 2 &middot; 2025/2026</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="header-strip-dot"></div>
+      <span class="header-strip-text" style="color:rgba(255,255,255,0.3)">Active</span>
+    </div>
+  </div>
+  <div class="header-main">
+    <div class="header-brand">
+      <div class="header-logo"><img src="AIGU.png" alt="AIGU" /></div>
+      <div>
+        <div class="header-name">AIGU &mdash; <span>Semester OS</span></div>
+        <div class="header-sub">University of Ghana &middot; School of Engineering Sciences &middot; CPEN</div>
+      </div>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-meta">
+      <div class="header-pill">Gabriel Kwaku Asante</div>
+      <div class="header-pill">Level 200</div>
+      <div class="header-pill">Sem 2 &middot; 2025/2026</div>
+      <div class="header-pill green" id="live-time">--:--</div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="view-toggle">
+      <button class="view-toggle-btn now-btn active" id="btn-now" onclick="setView('now')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Now
+      </button>
+      <button class="view-toggle-btn" id="btn-timetable" onclick="setView('timetable')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Timetable
+      </button>
+    </div>
+  </div>
+</header>
+<div class="now-banner" id="now-banner">NOW &mdash; --:--</div>
+<main class="app-shell">
+  <div class="now-view" id="now-view">
+    <div class="now-label">
+      <div class="now-dot"></div>
+      <span class="now-label-text">Right Now</span>
+      <span class="now-label-time" id="now-time-display">--:--</span>
+    </div>
+    <div id="now-current-block"></div>
+    <div id="now-next-block"></div>
+    <button class="now-timetable-btn" onclick="setView('timetable')">View Full Timetable &rarr;</button>
+  </div>
+  <div class="timetable-panels hidden" id="timetable-panels">
+    <div class="week-summary" id="week-summary"></div>
+    <div class="desktop-view">
+      <div class="grid-wrapper">
+        <div class="day-headers" id="day-headers"></div>
+        <div class="grid-body" id="grid-body">
+          <div class="time-axis" id="time-axis"></div>
+          <div class="grid-lines" id="grid-lines"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-view">
+      <div class="day-tabs" id="day-tabs"></div>
+      <div id="mobile-days"></div>
+    </div>
+    <div class="legend-section" id="legend-section"></div>
+  </div>
+</main>
+<footer class="footer">
+  <span class="footer-text">AIGU &middot; Gabriel Kwaku Asante &middot; 2025/2026</span>
+  <span class="footer-text">UG &middot; CPEN &middot; Level 200</span>
+</footer>
+<script>
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DAY_FULL=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const SCHEDULE=[
+[{start:'05:30',end:'06:30',type:'routine',title:'Morning Routine',sub:'Quiet time · Bath · Light exercise',tag:'MORNING'},{start:'06:30',end:'07:15',type:'review',title:'Pre-Class Review',sub:'30min review before leaving',tag:'REVIEW'},{start:'07:30',end:'08:25',type:'lecture',title:'CPEN 208',sub:'Software Engineering · SF-F2',tag:'LECTURE'},{start:'08:30',end:'09:25',type:'lecture',title:'CPEN 206',sub:'Linear Circuits · WW-S3',tag:'LECTURE'},{start:'09:30',end:'10:25',type:'lecture',title:'CPEN 204',sub:'Digital Logic · CS-S1',tag:'LECTURE'},{start:'10:30',end:'12:25',type:'lab',title:'SENG 202 LAB',sub:'Differential Equations · JQB 14',tag:'LAB'},{start:'12:30',end:'13:25',type:'lecture',title:'CPEN 202',sub:'Computer Systems Design · WW-S3',tag:'LECTURE'},{start:'19:00',end:'21:30',type:'study',title:'Book Studies',sub:'Course readings · 2.5hrs',tag:'STUDY'},{start:'21:30',end:'22:30',type:'ml',title:'ML / AI Learning',sub:'Machine Learning & AI fundamentals',tag:'ML'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'Reflect & Prepare tomorrow',tag:'REST'}],
+[{start:'05:30',end:'06:30',type:'routine',title:'Morning Routine',sub:'Quiet time · Bath · Light exercise',tag:'MORNING'},{start:'06:30',end:'07:15',type:'review',title:'Pre-Class Review',sub:'30min review before leaving',tag:'REVIEW'},{start:'07:30',end:'09:25',type:'lab',title:'CPEN 204 LAB',sub:'Digital Logic Lab · CS-Lab',tag:'LAB'},{start:'09:30',end:'10:25',type:'lecture',title:'CPEN 208',sub:'Software Engineering · SF-F2',tag:'LECTURE'},{start:'10:30',end:'11:25',type:'lecture',title:'MATH 253',sub:'Linear Algebra · JQB-7',tag:'LECTURE'},{start:'11:30',end:'12:25',type:'lecture',title:'SENG 202',sub:'Differential Equations · JQB 14',tag:'LECTURE'},{start:'12:30',end:'13:25',type:'lecture',title:'CPEN 202',sub:'Computer Systems Design · WW-S3',tag:'LECTURE'},{start:'19:00',end:'21:30',type:'study',title:'Book Studies',sub:'Course readings · 2.5hrs',tag:'STUDY'},{start:'21:30',end:'22:30',type:'ml',title:'ML / AI Learning',sub:'Machine Learning & AI fundamentals',tag:'ML'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'Reflect & Prepare tomorrow',tag:'REST'}],
+[{start:'05:30',end:'06:30',type:'routine',title:'Morning Routine',sub:'Quiet time · Bath · Light exercise',tag:'MORNING'},{start:'06:30',end:'07:15',type:'review',title:'Pre-Class Review',sub:'30min review before leaving',tag:'REVIEW'},{start:'07:30',end:'08:25',type:'lecture',title:'CPEN 206',sub:'Linear Circuits · WW-S3',tag:'LECTURE'},{start:'08:30',end:'09:25',type:'lecture',title:'MATH 253',sub:'Linear Algebra · JQB-7',tag:'LECTURE'},{start:'09:30',end:'10:25',type:'lecture',title:'SENG 202',sub:'Differential Equations · JQB 14',tag:'LECTURE'},{start:'10:30',end:'12:25',type:'lab',title:'CPEN 206 LAB',sub:'Linear Circuits Lab',tag:'LAB'},{start:'19:00',end:'21:30',type:'study',title:'Book Studies',sub:'Course readings · 2.5hrs',tag:'STUDY'},{start:'21:30',end:'22:30',type:'ml',title:'ML / AI Learning',sub:'Machine Learning & AI fundamentals',tag:'ML'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'Reflect & Prepare tomorrow',tag:'REST'}],
+[{start:'05:30',end:'06:30',type:'routine',title:'Morning Routine',sub:'Quiet time · Bath · Light exercise',tag:'MORNING'},{start:'06:30',end:'09:00',type:'review',title:'Pre-Class Review',sub:'30min review before leaving',tag:'REVIEW'},{start:'09:30',end:'10:25',type:'lecture',title:'CPEN 206',sub:'Linear Circuits · WW-S3',tag:'LECTURE'},{start:'10:30',end:'12:25',type:'lab',title:'SENG 202 LAB',sub:'Differential Equations · JQB 14',tag:'LAB'},{start:'12:30',end:'15:25',type:'lab',title:'CPEN 202 LAB',sub:'Computer Systems Design · Electronics Lab',tag:'LAB'},{start:'19:00',end:'21:30',type:'study',title:'Book Studies',sub:'Course readings · 2.5hrs',tag:'STUDY'},{start:'21:30',end:'22:30',type:'ml',title:'ML / AI Learning',sub:'Machine Learning & AI fundamentals',tag:'ML'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'Reflect & Prepare tomorrow',tag:'REST'}],
+[{start:'05:30',end:'06:30',type:'routine',title:'Morning Routine',sub:'Quiet time · Bath · Light exercise',tag:'MORNING'},{start:'06:30',end:'07:15',type:'flex',title:'Morning Flex',sub:'Still figuring this out - free block',tag:'FLEX'},{start:'13:30',end:'15:30',type:'lab',title:'CPEN 202 LAB',sub:'Computer Systems Design · Electronics Lab',tag:'LAB'},{start:'19:00',end:'21:30',type:'study',title:'Book Studies',sub:'Course readings · 2.5hrs',tag:'STUDY'},{start:'21:30',end:'22:30',type:'ml',title:'ML / AI Learning',sub:'Machine Learning & AI fundamentals',tag:'ML'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'Reflect & Prepare tomorrow',tag:'REST'}],
+[{start:'05:30',end:'06:30',type:'routine',title:'Jogging',sub:'Morning run',tag:'RUN'},{start:'07:00',end:'09:00',type:'routine',title:'Bath & Laundry',sub:'Wash day',tag:'WASH'},{start:'09:00',end:'11:00',type:'routine',title:'Rest',sub:'',tag:'REST'},{start:'11:30',end:'15:30',type:'study',title:'Studies',sub:'SACRED — nothing moves this',tag:'SACRED',sacred:true},{start:'16:00',end:'18:00',type:'ml',title:'ML / AI Learning',sub:'Machine Learning · Deep focus',tag:'ML'},{start:'18:00',end:'22:00',type:'social',title:'Rehearsals + Errands',sub:'Rehearsals · Ironing clothes · General prep',tag:'EVENING'},{start:'22:00',end:'23:30',type:'review',title:'Wind Down',sub:'',tag:'REST'}],
+[{start:'07:00',end:'09:30',type:'church',title:'Church Service',sub:'Sunday service',tag:'CHURCH'},{start:'10:00',end:'12:00',type:'routine',title:'Nap',sub:'Rest and recovery',tag:'NAP'},{start:'12:00',end:'17:00',type:'study',title:'Studies',sub:'Full study block — all subjects',tag:'STUDY'},{start:'17:00',end:'19:00',type:'social',title:'Movie + Meal',sub:'Unwind · Watch something · Eat well',tag:'CHILL'},{start:'19:30',end:'20:30',type:'social',title:'Executive Meeting',sub:'',tag:'MEETING'},{start:'20:30',end:'22:30',type:'review',title:'Weekly Planning',sub:'Week review · Self-reflection · Next week plan',tag:'PLAN'},{start:'22:30',end:'23:30',type:'review',title:'Wind Down',sub:'',tag:'REST'}]
+];
+const TYPES={lecture:{label:'Lecture',color:'#3b82f6'},lab:{label:'Lab/Tut',color:'#a855f7'},ml:{label:'ML/AI',color:'#f97316'},study:{label:'Study',color:'#22c55e'},routine:{label:'Routine',color:'#0ea5e9'},review:{label:'Review/Rest',color:'#94a3b8'},church:{label:'Church',color:'#c026d3'},social:{label:'Social',color:'#14b8a6'},flex:{label:'Flex',color:'#eab308'}};
+const START_HOUR=5,END_HOUR=23,END_MIN=30,MIN_PX=1.4;
+function timeToPx(t){const[h,m]=t.split(':').map(Number);return((h-START_HOUR)*60+m)*MIN_PX}
+function totalGridPx(){return((END_HOUR-START_HOUR)*60+END_MIN)*MIN_PX}
+function durationPx(s,e){const[sh,sm]=s.split(':').map(Number);const[eh,em]=e.split(':').map(Number);return((eh-sh)*60+(em-sm))*MIN_PX}
+function nowPx(){const n=new Date();return((n.getHours()-START_HOUR)*60+n.getMinutes())*MIN_PX}
+function currentTimeStr(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')}
+function todayIdx(){const d=new Date().getDay();return d===0?6:d-1}
+function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m}
+function nowMinutes(){const n=new Date();return n.getHours()*60+n.getMinutes()}
+function getTypeColors(type){const m={lecture:{bg:'var(--lecture-bg)',border:'var(--lecture-border)',text:'var(--lecture-text)'},lab:{bg:'var(--lab-bg)',border:'var(--lab-border)',text:'var(--lab-text)'},ml:{bg:'var(--ml-bg)',border:'var(--ml-border)',text:'var(--ml-text)'},study:{bg:'var(--study-bg)',border:'var(--study-border)',text:'var(--study-text)'},routine:{bg:'var(--routine-bg)',border:'var(--routine-border)',text:'var(--routine-text)'},review:{bg:'var(--review-bg)',border:'var(--review-border)',text:'var(--review-text)'},church:{bg:'var(--church-bg)',border:'var(--church-border)',text:'var(--church-text)'},social:{bg:'var(--social-bg)',border:'var(--social-border)',text:'var(--social-text)'},flex:{bg:'var(--flex-bg)',border:'var(--flex-border)',text:'var(--flex-text)'}};return m[type]||m.review}
+function updateClock(){const t=currentTimeStr();const lt=document.getElementById('live-time');if(lt)lt.textContent=t;const nb=document.getElementById('now-banner');if(nb)nb.textContent='NOW — '+t;const nd=document.getElementById('now-time-display');if(nd)nd.textContent=t;const ind=document.getElementById('time-indicator');if(ind){const px=nowPx();if(px>=0&&px<=totalGridPx()){ind.style.top=px+'px';ind.style.display='';}else ind.style.display='none';}renderNowView();}
+function buildLegend(){document.getElementById('legend-section').innerHTML='<div class="legend-title">Block Types</div><div class="legend-items">'+Object.entries(TYPES).map(([,v])=>'<div class="legend-item"><div class="legend-dot" style="background:'+v.color+'"></div><span>'+v.label+'</span></div>').join('')+'</div>';}
+function buildWeekSummary(){const ti=todayIdx();document.getElementById('week-summary').innerHTML=DAYS.map((d,i)=>{const bl=SCHEDULE[i];const u=bl.filter(b=>['lecture','lab'].includes(b.type)).length;const p=bl.length-u;const dom=bl.reduce((a,b)=>{a[b.type]=(a[b.type]||0)+1;return a},{});const dt=Object.entries(dom).sort((a,b)=>b[1]-a[1])[0]?.[0]||'review';return'<div class="day-summary-card'+(i===ti?' today':'')+'" onclick="scrollToDay('+i+')" title="'+DAY_FULL[i]+'"><div class="day-summary-name">'+d+'</div><div class="day-summary-counts"><div class="count-dot" style="background:'+(TYPES[dt]?.color||'#94a3b8')+'"></div><span class="count-label">'+u+'U &middot; '+p+'P</span></div></div>';}).join('');}
+function buildDesktopGrid(){const gridH=totalGridPx();const ti=todayIdx();document.getElementById('day-headers').innerHTML='<div class="day-header-cell time-spacer"></div>'+DAYS.map((d,i)=>'<div class="day-header-cell'+(i===ti?' today-col':'')+'"><div class="day-header-name">'+d+'</div></div>').join('');const gb=document.getElementById('grid-body');gb.style.height=gridH+'px';const ax=document.getElementById('time-axis');ax.style.height=gridH+'px';let ah='';for(let h=START_HOUR;h<=END_HOUR;h++){const tp=timeToPx(h.toString().padStart(2,'0')+':00');ah+='<div class="time-label" style="top:'+tp+'px">'+h.toString().padStart(2,'0')+':00</div>';}ax.innerHTML=ah;const le=document.getElementById('grid-lines');let lh='';for(let h=START_HOUR;h<=END_HOUR;h++){const tp=timeToPx(h.toString().padStart(2,'0')+':00');lh+='<div class="grid-line hour" style="top:'+tp+'px"></div>';if(h<END_HOUR)lh+='<div class="grid-line" style="top:'+(tp+30*MIN_PX)+'px"></div>';}le.innerHTML=lh;le.style.height=gridH+'px';DAYS.forEach((day,di)=>{const col=document.createElement('div');col.className='day-col'+(di===ti?' today-col':'');col.id='day-col-'+di;col.style.height=gridH+'px';if(di===ti){const ind=document.createElement('div');ind.className='time-indicator';ind.id='time-indicator';ind.style.top=Math.max(0,nowPx())+'px';col.appendChild(ind);}SCHEDULE[di].forEach(b=>{const tp=timeToPx(b.start);const hp=Math.max(durationPx(b.start,b.end)-2,12);const el=document.createElement('div');el.className='block block-'+b.type+(b.sacred?' sacred':'');el.style.top=tp+'px';el.style.height=hp+'px';el.innerHTML=(hp>=20?'<div class="block-time">'+b.start+'&ndash;'+b.end+'</div>':'')+(hp>=16?'<div class="block-title">'+(b.sacred?'\uD83D\uDD12 ':'')+b.title+'</div>':'')+(hp>=36&&b.sub?'<div class="block-sub">'+b.sub+'</div>':'')+(hp>=48?'<div class="block-tag">'+b.tag+'</div>':'');el.addEventListener('click',()=>openModal(b));col.appendChild(el);});gb.appendChild(col);});}
+function buildMobileView(){const ti=todayIdx();document.getElementById('day-tabs').innerHTML=DAYS.map((d,i)=>'<div class="day-tab'+(i===ti?' today-tab':'')+' '+(i===ti?'active':'')+'" id="day-tab-'+i+'" onclick="selectMobileDay('+i+')">'+d+'</div>').join('');document.getElementById('mobile-days').innerHTML=DAYS.map((d,i)=>'<div class="mobile-day-view'+(i===ti?' active':'')+'" id="mobile-day-'+i+'">'+SCHEDULE[i].map(b=>'<div class="mobile-block mobile-block-'+b.type+(b.sacred?' sacred':'')+'" onclick="openModal('+JSON.stringify(b).replace(/"/g,'&quot;')+')"><div class="mobile-block-time">'+b.start+' &ndash; '+b.end+'</div><div class="mobile-block-title">'+(b.sacred?'\uD83D\uDD12 ':'')+b.title+'</div>'+(b.sub?'<div class="mobile-block-sub">'+b.sub+'</div>':'')+'<div class="mobile-block-tag mobile-block-tag-'+b.type+'">'+b.tag+'</div></div>').join('')+'</div>').join('');}
+function selectMobileDay(idx){document.querySelectorAll('.day-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));document.querySelectorAll('.mobile-day-view').forEach((v,i)=>v.classList.toggle('active',i===idx));}
+function openModal(b){if(typeof b==='string'){try{b=JSON.parse(b);}catch(e){return;}}const col=getTypeColors(b.type);const o=document.createElement('div');o.className='modal-overlay';o.id='modal-overlay';o.innerHTML='<div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="closeModal()">&times;</button><div class="modal-tag" style="background:'+col.bg+';color:'+col.text+';border:1px solid '+col.border+'44">'+(b.sacred?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':'')+b.tag+'</div><div class="modal-title">'+b.title+'</div>'+(b.sub?'<div class="modal-sub">'+b.sub+'</div>':'')+'<div class="modal-meta"><div class="modal-meta-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+b.start+' &ndash; '+b.end+'</div><div class="modal-meta-chip" style="background:'+col.bg+';border-color:'+col.border+'33;color:'+col.text+'">'+(TYPES[b.type]?.label||b.type)+'</div></div>'+(b.sacred?'<div class="modal-sacred-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SACRED &mdash; This block is protected.</div>':'')+'</div>';document.body.appendChild(o);o.addEventListener('click',e=>{if(e.target===o)closeModal();});document.addEventListener('keydown',escClose);}
+function closeModal(){const o=document.getElementById('modal-overlay');if(o)o.remove();document.removeEventListener('keydown',escClose);}
+function escClose(e){if(e.key==='Escape')closeModal();}
+function renderNowView(){const nowMin=nowMinutes();const tbl=SCHEDULE[todayIdx()];const td=document.getElementById('now-time-display');if(td)td.textContent=currentTimeStr();let cur=null,nxt=null;for(let i=0;i<tbl.length;i++){const b=tbl[i];const s=timeToMinutes(b.start);const e=timeToMinutes(b.end);if(nowMin>=s&&nowMin<e){cur={block:b,idx:i,startMin:s,endMin:e};}else if(!nxt&&nowMin<s){nxt=b;}}const cel=document.getElementById('now-current-block');const nel=document.getElementById('now-next-block');if(!cel||!nel)return;if(cur){const b=cur.block;const col=getTypeColors(b.type);const pct=Math.min(100,Math.round(((nowMin-cur.startMin)/(cur.endMin-cur.startMin))*100));const rem=cur.endMin-nowMin;const rs=rem>=60?Math.floor(rem/60)+'h '+rem%60+'m left':rem+'m left';cel.innerHTML='<div class="now-block-card"><div class="now-block-accent" style="background:'+col.border+'"></div><div class="now-block-tag" style="background:'+col.bg+';color:'+col.text+';border:1px solid '+col.border+'44">'+(b.sacred?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':'')+b.tag+'</div><div class="now-block-title">'+b.title+'</div>'+(b.sub?'<div class="now-block-sub">'+b.sub+'</div>':'')+'<div class="now-block-time-row"><span class="now-block-time-label">'+b.start+' &ndash; '+b.end+'</span><span class="now-block-remaining">'+rs+'</span></div><div class="now-progress-track"><div class="now-progress-fill" style="width:'+pct+'%;background:'+col.border+'"></div></div><div class="now-progress-pct">'+pct+'% complete</div>'+(b.sacred?'<div class="modal-sacred-badge" style="margin-top:14px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SACRED — This block is protected.</div>':'')+'</div>';}else{const hf=tbl.some(b=>nowMin<timeToMinutes(b.start));const ico=hf?'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>':'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';cel.innerHTML='<div class="now-idle-card"><div class="now-idle-icon">'+ico+'</div><div class="now-idle-title">'+(hf?'Between blocks':'Day complete')+'</div><div class="now-idle-sub">'+(hf?'No scheduled block right now. Next one coming up.':'All blocks for today are done. Rest up!')+'</div></div>';}if(!nxt&&cur){const ni=cur.idx+1;if(ni<tbl.length)nxt=tbl[ni];}if(nxt){const col=getTypeColors(nxt.type);const si=timeToMinutes(nxt.start)-nowMin;const ss=si<=0?'Starting now':si<60?'In '+si+'m':'In '+Math.floor(si/60)+'h '+si%60+'m';nel.innerHTML='<div class="now-next-card" onclick="openModal('+JSON.stringify(nxt).replace(/"/g,'&quot;')+')"><div class="now-next-accent" style="background:'+col.border+'"></div><div><div class="now-next-label">Next up &rarr; '+ss+'</div><div class="now-next-title">'+nxt.title+'</div><div class="now-next-time">'+nxt.start+' &ndash; '+nxt.end+'</div></div><div class="now-next-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div></div>';}else nel.innerHTML='';}
+function setView(v){const np=document.getElementById('now-view');const tp=document.getElementById('timetable-panels');const bn=document.getElementById('btn-now');const bt=document.getElementById('btn-timetable');if(v==='now'){np.classList.remove('hidden');tp.classList.add('hidden');bn.classList.add('active');bt.classList.remove('active');renderNowView();}else{np.classList.add('hidden');tp.classList.remove('hidden');bn.classList.remove('active');bt.classList.add('active');}}
+function scrollToDay(idx){setView('timetable');setTimeout(()=>{const c=document.getElementById('day-col-'+idx);if(c)c.scrollIntoView({behavior:'smooth',inline:'center'});selectMobileDay(idx);},50);}
+function init(){buildLegend();buildWeekSummary();buildDesktopGrid();buildMobileView();updateClock();renderNowView();setInterval(updateClock,60000);setView('now');if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
