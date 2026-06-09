@@ -95,6 +95,36 @@ html = """<!DOCTYPE html>
     .now-timetable-btn { display: block; width: 100%; margin-top: 20px; padding: 14px; background: var(--text); color: #fff; border: none; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
     .now-timetable-btn:hover { opacity: 0.88; }
 
+    /* ---- DAILY TASKS ---- */
+    .tasks-panel { max-width: 760px; margin: 24px auto 0; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; box-shadow: 0 8px 28px rgba(15,23,42,0.04); }
+    .tasks-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .tasks-kicker { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+    .tasks-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.15; }
+    .tasks-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .tasks-date { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .tasks-date label { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .tasks-date input { height: 34px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 0 9px; }
+    .task-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 14px; }
+    .task-form input { min-width: 0; height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); font: inherit; padding: 0 12px; outline: none; }
+    .task-form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+    .task-form button { height: 40px; border: none; border-radius: 10px; background: var(--text); color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; padding: 0 16px; cursor: pointer; }
+    .tasks-summary { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .task-stat { border: 1px solid var(--border); border-radius: 999px; padding: 4px 9px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); background: var(--surface2); }
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
+    .task-empty { border: 1px dashed var(--border2); border-radius: 12px; padding: 16px; color: var(--text-muted); font-size: 12px; text-align: center; }
+    .task-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); padding: 10px; }
+    .task-item.done { background: var(--green-light); border-color: rgba(22,163,74,0.35); }
+    .task-item.failed { background: #fef2f2; border-color: #fecaca; }
+    .task-check { width: 24px; height: 24px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface); color: var(--green); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .task-item.failed .task-check { color: #b91c1c; cursor: not-allowed; }
+    .task-text { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+    .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .task-status { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-dim); }
+    .task-item.done .task-status { color: var(--green); }
+    .task-item.failed .task-status { color: #b91c1c; }
+    .task-delete { border: none; background: transparent; color: var(--text-dim); width: 26px; height: 26px; border-radius: 8px; cursor: pointer; font-size: 18px; line-height: 1; }
+    .task-delete:hover { background: var(--border); color: var(--text); }
+
     /* ---- WEEK SUMMARY ---- */
     .week-summary { display: flex; gap: 8px; padding: 16px 0 12px; overflow-x: auto; scrollbar-width: none; }
     .week-summary::-webkit-scrollbar { display: none; }
@@ -214,6 +244,11 @@ html = """<!DOCTYPE html>
       .now-banner { display: block; }
       .week-summary { display: none; }
       .app-shell { padding: 0 16px 80px; }
+      .tasks-panel { margin-top: 16px; padding: 14px; border-radius: 14px; }
+      .tasks-head { flex-direction: column; gap: 10px; }
+      .tasks-date { width: 100%; justify-content: space-between; }
+      .task-form { grid-template-columns: 1fr; }
+      .task-form button { width: 100%; }
       .header-meta { display: none; }
       .header-divider { display: none; }
       .header-name { font-size: 18px; }
@@ -262,6 +297,25 @@ html = """<!DOCTYPE html>
 </header>
 <div class="now-banner" id="now-banner">NOW &mdash; --:--</div>
 <main class="app-shell">
+  <section class="tasks-panel" aria-labelledby="tasks-title">
+    <div class="tasks-head">
+      <div>
+        <div class="tasks-kicker">Daily Execution</div>
+        <h2 class="tasks-title" id="tasks-title">Tasks for <span id="task-day-label">Today</span></h2>
+        <p class="tasks-sub">Unfinished tasks are marked failed when their day ends.</p>
+      </div>
+      <div class="tasks-date">
+        <label for="task-date">Day</label>
+        <input type="date" id="task-date" />
+      </div>
+    </div>
+    <form class="task-form" id="task-form">
+      <input type="text" id="task-input" maxlength="120" autocomplete="off" placeholder="Add a task for this day" />
+      <button type="submit">Add Task</button>
+    </form>
+    <div class="tasks-summary" id="tasks-summary"></div>
+    <div class="task-list" id="task-list"></div>
+  </section>
   <div class="now-view" id="now-view">
     <div class="now-label">
       <div class="now-dot"></div>
@@ -308,16 +362,28 @@ const SCHEDULE=[
 ];
 const TYPES={lecture:{label:'Lecture',color:'#3b82f6'},lab:{label:'Lab/Tut',color:'#a855f7'},ml:{label:'ML/AI',color:'#f97316'},study:{label:'Study',color:'#22c55e'},routine:{label:'Routine',color:'#0ea5e9'},review:{label:'Review/Rest',color:'#94a3b8'},church:{label:'Church',color:'#c026d3'},social:{label:'Social',color:'#14b8a6'},flex:{label:'Flex',color:'#eab308'}};
 const START_HOUR=5,END_HOUR=23,END_MIN=30,MIN_PX=1.4;
+const TASKS_KEY='aigu-daily-tasks-v1';
 function timeToPx(t){const[h,m]=t.split(':').map(Number);return((h-START_HOUR)*60+m)*MIN_PX}
 function totalGridPx(){return((END_HOUR-START_HOUR)*60+END_MIN)*MIN_PX}
 function durationPx(s,e){const[sh,sm]=s.split(':').map(Number);const[eh,em]=e.split(':').map(Number);return((eh-sh)*60+(em-sm))*MIN_PX}
 function nowPx(){const n=new Date();return((n.getHours()-START_HOUR)*60+n.getMinutes())*MIN_PX}
 function currentTimeStr(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')}
 function todayIdx(){const d=new Date().getDay();return d===0?6:d-1}
+function todayDateStr(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}
 function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m}
 function nowMinutes(){const n=new Date();return n.getHours()*60+n.getMinutes()}
 function getTypeColors(type){const m={lecture:{bg:'var(--lecture-bg)',border:'var(--lecture-border)',text:'var(--lecture-text)'},lab:{bg:'var(--lab-bg)',border:'var(--lab-border)',text:'var(--lab-text)'},ml:{bg:'var(--ml-bg)',border:'var(--ml-border)',text:'var(--ml-text)'},study:{bg:'var(--study-bg)',border:'var(--study-border)',text:'var(--study-text)'},routine:{bg:'var(--routine-bg)',border:'var(--routine-border)',text:'var(--routine-text)'},review:{bg:'var(--review-bg)',border:'var(--review-border)',text:'var(--review-text)'},church:{bg:'var(--church-bg)',border:'var(--church-border)',text:'var(--church-text)'},social:{bg:'var(--social-bg)',border:'var(--social-border)',text:'var(--social-text)'},flex:{bg:'var(--flex-bg)',border:'var(--flex-border)',text:'var(--flex-text)'}};return m[type]||m.review}
-function updateClock(){const t=currentTimeStr();const lt=document.getElementById('live-time');if(lt)lt.textContent=t;const nb=document.getElementById('now-banner');if(nb)nb.textContent='NOW \u2014 '+t;const nd=document.getElementById('now-time-display');if(nd)nd.textContent=t;const ind=document.getElementById('time-indicator');if(ind){const px=nowPx();if(px>=0&&px<=totalGridPx()){ind.style.top=px+'px';ind.style.display='';}else ind.style.display='none';}renderNowView();}
+function updateClock(){const t=currentTimeStr();const lt=document.getElementById('live-time');if(lt)lt.textContent=t;const nb=document.getElementById('now-banner');if(nb)nb.textContent='NOW \u2014 '+t;const nd=document.getElementById('now-time-display');if(nd)nd.textContent=t;const ind=document.getElementById('time-indicator');if(ind){const px=nowPx();if(px>=0&&px<=totalGridPx()){ind.style.top=px+'px';ind.style.display='';}else ind.style.display='none';}renderNowView();renderTasks();}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function loadTasks(){try{return JSON.parse(localStorage.getItem(TASKS_KEY)||'[]')}catch(e){return[]}}
+function saveTasks(tasks){localStorage.setItem(TASKS_KEY,JSON.stringify(tasks))}
+function selectedTaskDate(){const el=document.getElementById('task-date');return el&&el.value?el.value:todayDateStr()}
+function taskState(task){if(task.done)return'done';return task.date<todayDateStr()?'failed':'open'}
+function taskDayName(dateStr){const date=new Date(dateStr+'T12:00:00');const name=date.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});return dateStr===todayDateStr()?'Today · '+name:name}
+function initTasks(){const date=document.getElementById('task-date');const form=document.getElementById('task-form');if(!date||!form)return;date.value=todayDateStr();date.addEventListener('change',renderTasks);form.addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('task-input');const title=input.value.trim();if(!title)return;const tasks=loadTasks();tasks.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),date:selectedTaskDate(),title,done:false,createdAt:new Date().toISOString()});saveTasks(tasks);input.value='';renderTasks();});renderTasks();}
+function toggleTask(id){const tasks=loadTasks();const task=tasks.find(t=>t.id===id);if(!task||taskState(task)==='failed')return;task.done=!task.done;task.doneAt=task.done?new Date().toISOString():null;saveTasks(tasks);renderTasks();}
+function deleteTask(id){saveTasks(loadTasks().filter(t=>t.id!==id));renderTasks();}
+function renderTasks(){const list=document.getElementById('task-list');const summary=document.getElementById('tasks-summary');const label=document.getElementById('task-day-label');if(!list||!summary||!label)return;const date=selectedTaskDate();const tasks=loadTasks().filter(t=>t.date===date).sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));const counts=tasks.reduce((a,t)=>{a[taskState(t)]++;return a},{open:0,done:0,failed:0});label.textContent=taskDayName(date);summary.innerHTML='<span class="task-stat">'+tasks.length+' total</span><span class="task-stat">'+counts.open+' open</span><span class="task-stat">'+counts.done+' done</span><span class="task-stat">'+counts.failed+' failed</span>';if(!tasks.length){list.innerHTML='<div class="task-empty">No tasks for this day yet.</div>';return;}list.innerHTML=tasks.map(t=>{const state=taskState(t);const mark=state==='done'?'✓':state==='failed'?'!':'';const status=state==='open'?'Due today':state;return'<div class="task-item '+state+'"><button class="task-check" onclick="toggleTask(\\''+t.id+'\\')" aria-label="Toggle task" '+(state==='failed'?'disabled':'')+'>'+mark+'</button><div><div class="task-text">'+escapeHtml(t.title)+'</div><div class="task-meta"><span class="task-status">'+status+'</span></div></div><button class="task-delete" onclick="deleteTask(\\''+t.id+'\\')" aria-label="Delete task">&times;</button></div>';}).join('');}
 function buildLegend(){document.getElementById('legend-section').innerHTML='<div class="legend-title">Block Types</div><div class="legend-items">'+Object.entries(TYPES).map(([,v])=>'<div class="legend-item"><div class="legend-dot" style="background:'+v.color+'"></div><span>'+v.label+'</span></div>').join('')+'</div>';}
 function buildWeekSummary(){const ti=todayIdx();document.getElementById('week-summary').innerHTML=DAYS.map((d,i)=>{const bl=SCHEDULE[i];const u=bl.filter(b=>['lecture','lab'].includes(b.type)).length;const p=bl.length-u;const dom=bl.reduce((a,b)=>{a[b.type]=(a[b.type]||0)+1;return a},{});const dt=Object.entries(dom).sort((a,b)=>b[1]-a[1])[0]?.[0]||'review';return'<div class="day-summary-card'+(i===ti?' today':'')+'" onclick="scrollToDay('+i+')" title="'+DAY_FULL[i]+'"><div class="day-summary-name">'+d+'</div><div class="day-summary-counts"><div class="count-dot" style="background:'+(TYPES[dt]?.color||'#94a3b8')+'"></div><span class="count-label">'+u+'U &middot; '+p+'P</span></div></div>';}).join('');}
 function buildDesktopGrid(){const gridH=totalGridPx();const ti=todayIdx();document.getElementById('day-headers').innerHTML='<div class="day-header-cell time-spacer"></div>'+DAYS.map((d,i)=>'<div class="day-header-cell'+(i===ti?' today-col':'')+'"><div class="day-header-name">'+d+'</div></div>').join('');const gb=document.getElementById('grid-body');gb.style.height=gridH+'px';const ax=document.getElementById('time-axis');ax.style.height=gridH+'px';let ah='';for(let h=START_HOUR;h<=END_HOUR;h++){const tp=timeToPx(h.toString().padStart(2,'0')+':00');ah+='<div class="time-label" style="top:'+tp+'px">'+h.toString().padStart(2,'0')+':00</div>';}ax.innerHTML=ah;const le=document.getElementById('grid-lines');let lh='';for(let h=START_HOUR;h<=END_HOUR;h++){const tp=timeToPx(h.toString().padStart(2,'0')+':00');lh+='<div class="grid-line hour" style="top:'+tp+'px"></div>';if(h<END_HOUR)lh+='<div class="grid-line" style="top:'+(tp+30*MIN_PX)+'px"></div>';}le.innerHTML=lh;le.style.height=gridH+'px';DAYS.forEach((day,di)=>{const col=document.createElement('div');col.className='day-col'+(di===ti?' today-col':'');col.id='day-col-'+di;col.style.height=gridH+'px';if(di===ti){const ind=document.createElement('div');ind.className='time-indicator';ind.id='time-indicator';ind.style.top=Math.max(0,nowPx())+'px';col.appendChild(ind);}SCHEDULE[di].forEach(b=>{const tp=timeToPx(b.start);const hp=Math.max(durationPx(b.start,b.end)-2,12);const el=document.createElement('div');el.className='block block-'+b.type+(b.sacred?' sacred':'');el.style.top=tp+'px';el.style.height=hp+'px';el.innerHTML=(hp>=20?'<div class="block-time">'+b.start+'&ndash;'+b.end+'</div>':'')+(hp>=16?'<div class="block-title">'+(b.sacred?'\\uD83D\\uDD12 ':'')+b.title+'</div>':'')+(hp>=36&&b.sub?'<div class="block-sub">'+b.sub+'</div>':'')+(hp>=48?'<div class="block-tag">'+b.tag+'</div>':'');el.addEventListener('click',()=>openModal(b));col.appendChild(el);});gb.appendChild(col);});}
@@ -329,7 +395,7 @@ function escClose(e){if(e.key==='Escape')closeModal();}
 function renderNowView(){const nowMin=nowMinutes();const tbl=SCHEDULE[todayIdx()];const td=document.getElementById('now-time-display');if(td)td.textContent=currentTimeStr();let cur=null,nxt=null;for(let i=0;i<tbl.length;i++){const b=tbl[i];const s=timeToMinutes(b.start);const e=timeToMinutes(b.end);if(nowMin>=s&&nowMin<e){cur={block:b,idx:i,startMin:s,endMin:e};}else if(!nxt&&nowMin<s){nxt=b;}}const cel=document.getElementById('now-current-block');const nel=document.getElementById('now-next-block');if(!cel||!nel)return;if(cur){const b=cur.block;const col=getTypeColors(b.type);const pct=Math.min(100,Math.round(((nowMin-cur.startMin)/(cur.endMin-cur.startMin))*100));const rem=cur.endMin-nowMin;const rs=rem>=60?Math.floor(rem/60)+'h '+rem%60+'m left':rem+'m left';cel.innerHTML='<div class="now-block-card"><div class="now-block-accent" style="background:'+col.border+'"></div><div class="now-block-tag" style="background:'+col.bg+';color:'+col.text+';border:1px solid '+col.border+'44">'+(b.sacred?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':'')+b.tag+'</div><div class="now-block-title">'+b.title+'</div>'+(b.sub?'<div class="now-block-sub">'+b.sub+'</div>':'')+'<div class="now-block-time-row"><span class="now-block-time-label">'+b.start+' &ndash; '+b.end+'</span><span class="now-block-remaining">'+rs+'</span></div><div class="now-progress-track"><div class="now-progress-fill" style="width:'+pct+'%;background:'+col.border+'"></div></div><div class="now-progress-pct">'+pct+'% complete</div>'+(b.sacred?'<div class="modal-sacred-badge" style="margin-top:14px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SACRED \u2014 This block is protected.</div>':'')+'</div>';}else{const hf=tbl.some(b=>nowMin<timeToMinutes(b.start));const ico=hf?'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>':'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';cel.innerHTML='<div class="now-idle-card"><div class="now-idle-icon">'+ico+'</div><div class="now-idle-title">'+(hf?'Between blocks':'Day complete')+'</div><div class="now-idle-sub">'+(hf?'No scheduled block right now. Next one coming up.':'All blocks for today are done. Rest up!')+'</div></div>';}if(!nxt&&cur){const ni=cur.idx+1;if(ni<tbl.length)nxt=tbl[ni];}if(nxt){const col=getTypeColors(nxt.type);const si=timeToMinutes(nxt.start)-nowMin;const ss=si<=0?'Starting now':si<60?'In '+si+'m':'In '+Math.floor(si/60)+'h '+si%60+'m';nel.innerHTML='<div class="now-next-card" onclick="openModal('+JSON.stringify(nxt).replace(/"/g,'&quot;')+')"><div class="now-next-accent" style="background:'+col.border+'"></div><div><div class="now-next-label">Next up &rarr; '+ss+'</div><div class="now-next-title">'+nxt.title+'</div><div class="now-next-time">'+nxt.start+' &ndash; '+nxt.end+'</div></div><div class="now-next-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div></div>';}else nel.innerHTML='';}
 function setView(v){const np=document.getElementById('now-view');const tp=document.getElementById('timetable-panels');const bn=document.getElementById('btn-now');const bt=document.getElementById('btn-timetable');if(v==='now'){np.classList.remove('hidden');tp.classList.add('hidden');bn.classList.add('active');bt.classList.remove('active');renderNowView();}else{np.classList.add('hidden');tp.classList.remove('hidden');bn.classList.remove('active');bt.classList.add('active');}}
 function scrollToDay(idx){setView('timetable');setTimeout(()=>{const c=document.getElementById('day-col-'+idx);if(c)c.scrollIntoView({behavior:'smooth',inline:'center'});selectMobileDay(idx);},50);}
-function init(){buildLegend();buildWeekSummary();buildDesktopGrid();buildMobileView();updateClock();renderNowView();setInterval(updateClock,60000);setView('now');if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});}
+function init(){initTasks();buildLegend();buildWeekSummary();buildDesktopGrid();buildMobileView();updateClock();renderNowView();setInterval(updateClock,60000);setView('now');if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});}
 document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
