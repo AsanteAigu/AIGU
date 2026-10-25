@@ -4,8 +4,8 @@
   "description": "Semester OS for Gabriel Kwaku Asante · UG CPEN Level 300 — timetable, tasks, books, money",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f4ef",
-  "theme_color": "#f5f4ef",
+  "background_color": "#ffffff",
+  "theme_color": "#0f2557",
   "icons": [
     {
       "src": "icons/icon-192.png",
