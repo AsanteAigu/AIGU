@@ -1,11 +1,11 @@
 {
   "name": "AIGU — Semester OS",
   "short_name": "AIGU",
-  "description": "Semester schedule dashboard for Gabriel Kwaku Asante · UG CPEN Level 200",
+  "description": "Semester OS for Gabriel Kwaku Asante · UG CPEN Level 300 — timetable, tasks, books, money",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#f5f4ef",
+  "theme_color": "#f5f4ef",
   "icons": [
     {
       "src": "icons/icon-192.png",
