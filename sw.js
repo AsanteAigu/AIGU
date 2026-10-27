@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aigu-os-v6';
+const CACHE_NAME = 'aigu-os-v7';
 const CACHE_URLS = ['./', './index.html', './manifest.json', './AIGU.png', './icons/icon-192.png', './icons/favicon.png', './favicon.ico'];
 
 self.addEventListener('install', event => {
