@@ -262,6 +262,28 @@
     .tx-day:first-child { padding-top: 0; }
     .tx-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 13%, #fff); color: var(--c); flex-shrink: 0; }
     .amt-in { color: var(--blue); }
+    .cat-row.over .mono { color: var(--navy); font-weight: 500; }
+    .cat-row.over .bar > i { background: var(--navy); }
+    .insight { display: flex; gap: 10px; padding: 9px 0; font-size: 14px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+    .insight:last-child { border-bottom: none; }
+    .insight svg { color: var(--blue); margin-top: 2px; }
+    .verdict { font-size: 13.5px; padding: 10px 12px; border-radius: 10px; background: var(--blue-soft); color: var(--navy); }
+    .setup-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; background: var(--blue-soft); border-color: #cfdefc; }
+    .setup-banner .delta { margin-top: 2px; }
+    .sheet.setup { max-width: 500px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .setup label { font-size: 13px; color: var(--ink-2); display: block; }
+    .setup .input { margin-top: 5px; }
+    .setup-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; margin-top: 16px; }
+    .setup-grid label { display: flex; flex-direction: column; justify-content: flex-end; }
+    .suggest { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--blue-soft); font-size: 13px; color: var(--navy); display: grid; gap: 8px; justify-items: start; }
+    .suggest > div { display: flex; gap: 8px; }
+    .suggest svg { color: var(--blue); margin-top: 1px; }
+    .setup-budget { margin-top: 12px; }
+    .parts { margin-top: 6px; }
+    .parts label { display: grid; grid-template-columns: 10px minmax(0,1fr) 96px; gap: 10px; align-items: center; padding: 3px 0; font-size: 14px; color: var(--ink); }
+    .parts .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+    .parts .input { margin: 0; height: 34px; border-radius: 9px; }
+    .setup-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; position: sticky; bottom: -26px; background: var(--panel); padding: 10px 0; }
 
     /* ================= OVERLAYS ================= */
     .overlay { position: fixed; inset: 0; z-index: 100; background: rgba(11,21,48,.32); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: grid; place-items: start center; padding: 12vh 16px 16px; animation: fade .15s ease; }
@@ -489,14 +511,15 @@
           <button class="arrow-btn" data-act="month" data-step="1" aria-label="Next month" data-icon="right"></button>
         </div>
       </div>
+      <div class="card setup-banner" id="money-setup" hidden>
+        <div><div class="card-label">You haven't set your budget yet</div><div class="delta">Tell AIGU what you have, even GH₵ 0, and it suggests how to split it.</div></div>
+        <button class="btn" data-act="budget-setup">Set up</button>
+      </div>
       <div class="grid g-4" id="money-stats"></div>
       <div class="card" style="margin-bottom:16px">
         <div class="card-head" style="margin:0">
           <span class="card-label">Spending</span>
-          <form data-form="budget" style="display:flex;align-items:center;gap:8px">
-            <span class="mono muted" style="font-size:12px">budget GH₵</span>
-            <input class="input" name="budget" type="number" min="0" step="1" id="budget-input" style="width:96px;height:30px;border-radius:9px" />
-          </form>
+          <button class="btn ghost sm" data-act="budget-edit">Edit budget</button>
         </div>
         <div id="spend-head"></div>
         <div id="spend-chart"></div>
@@ -517,12 +540,15 @@
                 <input class="input" name="amount" type="number" min="0.01" step="0.01" placeholder="Amount (GH₵)" required inputmode="decimal" />
                 <input class="input" name="date" type="date" required />
               </div>
-              <select class="select" name="cat" id="tx-cat"></select>
-              <input class="input" name="note" placeholder="Note, e.g. Waakye at Night Market" maxlength="80" />
+              <input class="input" name="note" placeholder="What was it? e.g. Waakye at Night Market" maxlength="80" />
+              <select class="select" name="cat" id="tx-cat" aria-label="Part"></select>
+              <div class="delta" id="tx-hint" style="margin:0"></div>
+              <div class="verdict" id="tx-verdict" hidden></div>
               <button class="btn">Save</button>
             </form>
           </div>
-          <div class="card"><div class="card-head"><span class="card-label">By category</span></div><div id="cats"></div></div>
+          <div class="card"><div class="card-head"><span class="card-label">Suggestions</span><span class="mono muted" style="font-size:12px">learned on this device</span></div><div id="insights"></div></div>
+          <div class="card"><div class="card-head"><span class="card-label">Budget parts</span></div><div id="cats"></div></div>
         </div>
       </div>
     </section>
@@ -556,6 +582,7 @@ const ICONS = {
   arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
   play: '<path d="M8 5v14l11-7z"/>',
   flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
+  bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
   wallet: '<rect x="2" y="6" width="20" height="14" rx="3"/><path d="M16 13h2M2 10h20"/>',
 };
 function icon(name, size = 18, sw = 1.7) {
@@ -579,15 +606,15 @@ const COURSES = {
 
 // [dayIndex, start, end, course, venue, lecturer] — official L300 Sem 1 2026/2027 timetable
 const CLASSES = [
-  [0, '08:30', '10:25', 'CPEN 311', 'Huawei Lab', 'Mr. G. Anni'],
+  [0, '08:30', '11:25', 'CPEN 313', 'Electronics Lab', 'Mr. A. Debra'],
   [0, '11:30', '13:25', 'CPEN 301', 'EW-S1', 'Prof. G. Mills'],
   [0, '13:30', '16:25', 'SENG 301', 'Huawei Lab', 'Mrs. G. Osei'],
   [1, '07:30', '10:25', 'CPEN 305', 'Huawei Lab', 'Dr. I. A. Aboagye'],
   [1, '11:30', '14:25', 'CPEN 301', 'Electronics Lab', 'Prof. G. Mills'],
   [1, '14:30', '17:25', 'CPEN 315', 'Huawei Lab', 'Prof. Sowah / Dr. Richardson'],
-  [2, '08:30', '10:25', 'CPEN 307', 'WW-S1', ''],
+  [2, '08:30', '10:25', 'CPEN 307', 'WW-S1', 'Mrs. G. Osei'],
   [2, '10:30', '12:25', 'CPEN 315', 'SF-F1', 'Prof. Sowah / Dr. Richardson'],
-  [2, '14:30', '17:25', 'CPEN 313', 'Electronics Lab', 'Mr. A. Debra'],
+  [2, '14:30', '16:25', 'CPEN 311', 'EW-S3', 'Mr. G. Anni'],
   [3, '10:30', '13:25', 'CPEN 307', 'Huawei Lab', 'Mrs. G. Osei'],
   [3, '13:30', '15:25', 'CPEN 305', 'WW-S1', 'Dr. I. A. Aboagye'],
   [3, '15:30', '17:25', 'SENG 301', 'CC', 'Mrs. G. Osei'],
@@ -609,32 +636,44 @@ const TYPES = {
 
 const P = (start, end, type, title, sub = '', extra = {}) => ({ start, end, type, title, sub, ...extra });
 const MORNING = P('05:30', '06:30', 'routine', 'Morning Routine', 'Quiet time · Bath · Light exercise');
-const evening = study => [
-  P('19:00', '19:45', 'reading', 'Reading', 'Current book · 30–45 min'),
-  P('19:45', '21:45', 'study', 'Deep Study', study),
-  P('21:45', '22:45', 'ml', 'ML / AI Learning', 'Courses · papers · side projects'),
-  P('22:45', '23:15', 'rest', 'Wind Down', 'Log spending · tick habits · plan tomorrow'),
+const study = (start, end, code, how = '', extra = {}) => P(start, end, 'study', `Study: ${code}`, how || COURSES[code].name, extra);
+const evening = (a, b) => [
+  P('19:00', '19:30', 'review', 'Quick Review', "Go over today's lectures"),
+  study('19:30', '21:00', a),
+  P('21:00', '21:10', 'rest', 'Break'),
+  study('21:10', '22:20', b),
+  P('22:20', '22:30', 'review', 'Skim Tomorrow', "Skim tomorrow's topics"),
+  P('22:30', '23:15', 'rest', 'Wind Down', 'Read a little · log spending · tick habits'),
 ];
 const ROUTINES = [
-  [MORNING, P('06:30', '08:00', 'review', 'Pre-Class Review', 'Skim OOP & Signals notes'), ...evening('CPEN 301 Signals · SENG 301 problem sets')],
-  [MORNING, P('06:30', '07:15', 'review', 'Pre-Class Review', 'Networks notes before the 7:30 class'), ...evening('CPEN 305 Networks · CPEN 315 Architecture')],
-  [MORNING, P('06:30', '08:00', 'review', 'Pre-Class Review', 'Operating Systems & Architecture notes'), ...evening('CPEN 313 Microelectronics · CPEN 307 OS')],
-  [MORNING, P('06:30', '08:00', 'reading', 'Morning Reading', 'Long read before a late start'), P('08:00', '10:00', 'study', 'Morning Deep Work', 'Assignments · lab prep'), ...evening('SENG 301 Numerical Methods · CPEN 307 OS')],
-  [MORNING, P('06:30', '07:15', 'review', 'Pre-Class Review', 'Microelectronics notes before 7:30'), P('16:00', '18:00', 'flex', 'Free Window', 'Rest · errands · catch up'), ...evening('CPEN 311 OOP · build & practice')],
+  [MORNING, P('06:30', '08:00', 'review', 'Pre-Class Review', 'Skim Microelectronics & Signals notes'), ...evening('CPEN 313', 'CPEN 301')],
+  [MORNING, P('06:30', '07:15', 'review', 'Pre-Class Review', 'Networks notes before the 7:30 class'), ...evening('CPEN 305', 'CPEN 315')],
+  [MORNING, P('06:30', '08:00', 'review', 'Pre-Class Review', 'Operating Systems & Architecture notes'), ...evening('CPEN 307', 'CPEN 311')],
+  [MORNING, P('06:30', '08:00', 'reading', 'Morning Reading', 'Long read before a late start'), study('08:00', '09:00', 'CPEN 315'), study('09:00', '09:30', 'CPEN 307'), study('09:30', '10:00', 'SENG 301'), ...evening('SENG 301', 'CPEN 305')],
+  [MORNING, P('06:30', '07:15', 'review', 'Pre-Class Review', 'Microelectronics notes before 7:30'), study('16:30', '17:15', 'CPEN 301'), study('17:15', '18:00', 'CPEN 313'), ...evening('CPEN 311', 'CPEN 313')],
   [
     P('05:30', '06:30', 'routine', 'Jogging', 'Morning run'),
     P('07:00', '09:00', 'routine', 'Bath & Laundry', 'Wash day'),
     P('09:00', '11:00', 'reading', 'Long Read & Rest', 'Slow morning with a book'),
-    P('11:30', '15:30', 'study', 'Studies', 'Protected block — nothing moves this', { sacred: true }),
-    P('16:00', '18:00', 'ml', 'ML / AI Learning', 'Deep focus · build something'),
+    study('11:30', '13:00', 'CPEN 301', 'Practice problems and assignments', { sacred: true }),
+    P('13:00', '13:30', 'rest', 'Lunch'),
+    study('13:30', '15:00', 'SENG 301', 'Practice problems', { sacred: true }),
+    P('15:00', '15:10', 'rest', 'Break'),
+    study('15:10', '16:30', 'CPEN 315', 'Notes and past questions', { sacred: true }),
+    P('16:30', '18:00', 'ml', 'ML / AI Learning', 'Deep focus · build something'),
     P('18:00', '22:00', 'social', 'Rehearsals + Errands', 'Rehearsals · ironing · general prep'),
     P('22:00', '23:30', 'rest', 'Wind Down'),
   ],
   [
     P('07:00', '09:30', 'church', 'Church Service', 'Sunday service'),
     P('10:00', '12:00', 'rest', 'Nap', 'Rest and recovery'),
-    P('12:00', '17:00', 'study', 'Studies', 'Full study block — all courses'),
-    P('17:00', '19:00', 'social', 'Movie + Meal', 'Unwind · watch something · eat well'),
+    study('12:00', '13:30', 'CPEN 307'),
+    P('13:30', '13:45', 'rest', 'Break'),
+    study('13:45', '15:15', 'CPEN 305'),
+    P('15:15', '15:45', 'rest', 'Rest or Eat'),
+    study('15:45', '17:00', 'CPEN 311', 'Coding practice'),
+    P('17:00', '18:00', 'review', 'Preview Monday', "CPEN 313, 301, SENG 301 · quiz yourself on the week's hardest topics"),
+    P('18:00', '19:30', 'social', 'Movie + Meal', 'Free · books and rest'),
     P('19:30', '20:30', 'social', 'Executive Meeting'),
     P('20:30', '22:30', 'review', 'Weekly Planning', 'Review week · budget check · plan next week'),
     P('22:30', '23:30', 'rest', 'Wind Down'),
@@ -667,13 +706,21 @@ function load(key, fallback) {
 function save(name) {
   try { localStorage.setItem(KEYS[name], JSON.stringify(S[name])); } catch (e) { toast('Could not save — storage is unavailable'); }
 }
+// Older versions assumed a GH₵ 800 budget and used different category names
+function migrateMoney(m) {
+  const rename = { 'Books & Printing': 'Studies', Toiletries: 'Personal care', Other: 'Miscellaneous' };
+  const out = Object.assign({ budget: 0, tx: [], opening: 0, parts: {}, expected: 0, setupDone: false, setupDismissed: false }, m);
+  if (!out.setupDone) { out.budget = 0; out.parts = {}; }
+  out.tx.forEach(t => { if (rename[t.cat]) t.cat = rename[t.cat]; });
+  return out;
+}
 const DEFAULT_HABITS = ['Quiet time', 'Exercise', 'Read 20 pages', 'DSA / coding practice', 'ML study', 'Log my spending']
   .map((name, i) => ({ id: 'h' + i, name }));
 const S = {
   tasks: load(KEYS.tasks, []),
   books: load(KEYS.books, []),
   reading: load(KEYS.reading, []),
-  money: load(KEYS.money, { budget: 800, tx: [] }),
+  money: migrateMoney(load(KEYS.money, {})),
   habits: load(KEYS.habits, { list: DEFAULT_HABITS, log: {} }),
   settings: Object.assign({ weekMode: 'all', readingGoal: 12, view: 'today' }, load(KEYS.settings, {})),
 };
@@ -849,8 +896,8 @@ function renderTodayStats() {
   const rs = streak(day => S.reading.some(r => r.date === day && r.pages > 0));
   $('wallet-card').innerHTML = `<div class="art"><div class="cc back"></div><div class="cc front"></div></div>
     <div class="card-label">Spent today</div><div class="big">${moneyShort(spentToday)}</div>
-    <div class="delta">${left < 0 ? `<b>${moneyShort(-left)}</b> over budget` : `<b>${moneyShort(left)}</b> left this month`}</div>
-    <div class="bar" style="margin-top:18px;position:relative;z-index:1"><i style="width:${Math.min(100, spentMonth / Math.max(1, S.money.budget) * 100)}%"></i></div>`;
+    <div class="delta">${!S.money.budget ? `<b>${moneyShort(balanceNow())}</b> balance · no budget yet` : left < 0 ? `<b>${moneyShort(-left)}</b> over budget` : `<b>${moneyShort(left)}</b> left this month`}</div>
+    <div class="bar" style="margin-top:18px;position:relative;z-index:1"><i style="width:${S.money.budget ? Math.min(100, spentMonth / S.money.budget * 100) : 0}%"></i></div>`;
   $('today-stats').innerHTML = `
     <div class="card link" data-act="go" data-view="tasks"><div class="card-label">Tasks done</div><div class="big">${tasks.filter(t => t.done).length}<small> / ${tasks.length}</small></div><div class="delta">${tasks.filter(t => !t.done).length} still open</div></div>
     <div class="card link" data-act="jump" data-target="habits-card"><div class="card-label">Habits kept</div><div class="big">${habitsDone}<small> / ${S.habits.list.length}</small></div><div class="delta">${S.habits.list.length - habitsDone} to go today</div></div>
@@ -936,6 +983,7 @@ function renderWeek() {
       const top = (s - r0) * PX + 1, hPx = (e - s) * PX - 3;
       const isClass = b.type === 'class';
       let inner = `<div class="t">${b.start}–${b.end}</div><div class="n">${b.sacred ? '◆ ' : ''}${esc(b.title)}</div>`;
+      if (hPx < 18) inner = ''; // 10-minute blocks are too thin for text; the title shows on hover and tap
       if (hPx > 52 && b.sub) inner += `<div class="s">${esc(b.sub)}</div>`;
       if (isClass && hPx > 92) inner += `<div class="v">${esc(b.venue)}${b.lecturer ? '<br>' + esc(b.lecturer) : ''}</div>`;
       col += `<div class="wk-blk ${isClass ? 'class' : 'personal'} ${b.sacred ? 'sacred' : ''}" style="top:${top}px;height:${hPx}px;--c:${colorOf(b)}" data-act="block" data-day="${d}" data-i="${i}" title="${esc(b.title)} · ${b.start}–${b.end}">${inner}</div>`;
@@ -1049,15 +1097,146 @@ function logPages(book, page) {
 
 /* ================= MONEY ================= */
 const CATS = {
-  out: [['Food', '#2563eb'], ['Transport', '#1e3a8a'], ['Data & Airtime', '#0ea5e9'], ['Books & Printing', '#6366f1'], ['Toiletries', '#60a5fa'], ['Church & Giving', '#0891b2'], ['Fun', '#a5b4fc'], ['Other', '#94a3b8']],
+  out: [['Food', '#2563eb'], ['Studies', '#6366f1'], ['Transport', '#1e3a8a'], ['Data & Airtime', '#0ea5e9'], ['Subscriptions', '#4f46e5'], ['Hostel & Utilities', '#0369a1'], ['Personal care', '#60a5fa'], ['Clothes', '#818cf8'], ['Health', '#22a7d8'], ['Church & Giving', '#0891b2'], ['Fun', '#a5b4fc'], ['Savings', '#1d4ed8'], ['Miscellaneous', '#94a3b8']],
   in: [['Allowance', '#2563eb'], ['Gig / Work', '#0ea5e9'], ['Gift', '#6366f1'], ['Other income', '#94a3b8']],
 };
+// Starting guess for how a student budget splits, until there is real history to learn from
+const STARTER_SHARES = { Food: .35, Studies: .1, Transport: .12, 'Data & Airtime': .08, Subscriptions: .03, 'Hostel & Utilities': .07, 'Personal care': .04, Clothes: .03, Health: .03, 'Church & Giving': .04, Fun: .04, Savings: .04, Miscellaneous: .03 };
+// Parts you add yourself live in your data and join the built-in list
+const CUSTOM_COLORS = ['#3b82f6', '#38bdf8', '#7c3aed', '#0284c7', '#64748b'];
+function syncCustomParts() {
+  (S.money.customParts || []).forEach((name, i) => { if (!CATS.out.some(c => c[0] === name)) CATS.out.push([name, CUSTOM_COLORS[i % CUSTOM_COLORS.length]]); });
+}
+syncCustomParts();
 const catColor = (kind, name) => (CATS[kind].find(c => c[0] === name) || CATS[kind][CATS[kind].length - 1])[1];
-let moneyMonth = dateKey().slice(0, 7), txKind = 'out';
+let moneyMonth = dateKey().slice(0, 7), txKind = 'out', catTouched = false;
 const monthKey = (y, m) => { const d = new Date(y, m, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+const netOf = tx => sum(tx.map(t => t.kind === 'in' ? t.amount : -t.amount));
+const balanceNow = () => (S.money.opening || 0) + netOf(S.money.tx);
+const spentIn = (mk, cat) => sum(S.money.tx.filter(t => t.kind === 'out' && t.date.startsWith(mk) && (!cat || t.cat === cat)).map(t => t.amount));
+
+/* ----- on-device model 1: Naive Bayes, note text -> category ----- */
+const NB_SEED = {
+  Food: 'waakye jollof rice banku kenkey fufu food lunch breakfast supper dinner snack water sachet chicken indomie eggs bread tea koko hausa canteen market gari beans',
+  Studies: 'book books printing print photocopy notes handout stationery pen notebook calculator course lab project tutorial questions textbook school fees',
+  Transport: 'trotro uber bolt taxi okada fare transport bus shuttle stc yango',
+  'Data & Airtime': 'data bundle airtime mtn telecel vodafone credit wifi internet',
+  Subscriptions: 'subscription netflix spotify chatgpt claude icloud youtube premium apple canva github prime showmax dstv',
+  'Hostel & Utilities': 'hostel rent electricity ecg prepaid gas bill utility',
+  'Personal care': 'soap toothpaste haircut barber pomade laundry detergent toiletries deodorant',
+  Clothes: 'clothes shoes shirt trousers dress sneakers slippers',
+  Health: 'hospital clinic medicine drugs pharmacy malaria',
+  Savings: 'savings save susu investment',
+  'Church & Giving': 'offering tithe church donation gift seed giving welfare',
+  Fun: 'movie cinema game party outing hangout',
+  Miscellaneous: '',
+};
+const tokens = s => (s || '').toLowerCase().match(/[a-z]{2,}/g) || [];
+let nbCache = null;
+function nbModel() {
+  if (nbCache && nbCache.n === S.money.tx.length) return nbCache;
+  const counts = {}, totals = {}, docs = {}, vocab = new Set();
+  const learn = (cat, words, w) => {
+    counts[cat] = counts[cat] || {}; docs[cat] = (docs[cat] || 0) + w;
+    words.forEach(t => { counts[cat][t] = (counts[cat][t] || 0) + w; totals[cat] = (totals[cat] || 0) + w; vocab.add(t); });
+  };
+  Object.entries(NB_SEED).forEach(([c, s]) => learn(c, tokens(s), 1));
+  S.money.tx.filter(t => t.kind === 'out' && t.note).forEach(t => learn(t.cat, tokens(t.note), 3)); // your own entries outweigh the seed
+  return nbCache = { n: S.money.tx.length, counts, totals, docs, vocab };
+}
+function predictCategory(note) {
+  const m = nbModel(), words = tokens(note).filter(t => m.vocab.has(t));
+  if (!words.length) return null;
+  const allDocs = sum(Object.values(m.docs));
+  const scores = CATS.out.map(([c]) => {
+    let s = Math.log(((m.docs[c] || 0) + 1) / (allDocs + CATS.out.length));
+    words.forEach(t => { s += Math.log((((m.counts[c] || {})[t] || 0) + .02) / ((m.totals[c] || 0) + .02 * m.vocab.size)); }); // light smoothing so a single known word counts
+    return [c, s];
+  }).sort((a, b) => b[1] - a[1]);
+  const top = scores[0][1], norm = sum(scores.map(([, s]) => Math.exp(s - top)));
+  return { cat: scores[0][0], confidence: 1 / norm };
+}
+
+/* ----- on-device model 2: budget suggestion from what you have and your past months ----- */
+function suggestBudget(available) {
+  const [y, m] = dateKey().slice(0, 7).split('-').map(Number);
+  const past = [1, 2, 3].map(i => monthKey(y, m - 1 - i)).filter(mk => S.money.tx.filter(t => t.kind === 'out' && t.date.startsWith(mk)).length >= 5); // too few entries can't be trusted as a real month
+  const avgTotal = past.length ? sum(past.map(mk => spentIn(mk))) / past.length : 0;
+  const weight = Math.min(past.length / 3, 1) * .8;
+  const pastTotal = sum(past.map(mk => spentIn(mk)));
+  const shares = {};
+  CATS.out.forEach(([c]) => {
+    const learned = pastTotal ? sum(past.map(mk => spentIn(mk, c))) / pastTotal : 0;
+    shares[c] = (1 - weight) * (STARTER_SHARES[c] || 0) + weight * learned;
+  });
+  const afford = Math.floor(available * .9 / 5) * 5; // keep about 10% back for emergencies
+  const total = !available ? 0 : past.length ? Math.min(afford, Math.ceil(avgTotal / 5) * 5) : afford;
+  const why = !available
+    ? (past.length ? `You usually spend ${moneyShort(Math.round(avgTotal))} a month, but you have nothing available right now. Log money when it comes in and I'll suggest a budget.` : "You're at GH₵ 0, so there's nothing to split yet. Enter what you expect this month, or log money when it comes in.")
+    : past.length
+      ? `Based on ${plural(past.length, 'past month')} of your spending (about ${moneyShort(Math.round(avgTotal))} a month), keeping about 10% of your money back.`
+      : `Starting guess: 90% of what you have, with 10% kept back. It will learn your real pattern after your first full month.`;
+  return { total, shares, why, learned: past.length };
+}
+function splitBudget(total, shares) {
+  const parts = {};
+  let used = 0;
+  CATS.out.forEach(([c]) => { parts[c] = Math.floor(total * (shares[c] || 0)); used += parts[c]; });
+  parts.Food += Math.max(0, total - used);
+  return parts;
+}
+
+/* ----- suggestions card ----- */
+function moneyInsights() {
+  const k = dateKey(), mk = k.slice(0, 7), { budget, parts = {} } = S.money;
+  const [y, mo] = mk.split('-').map(Number), dim = new Date(y, mo, 0).getDate(), day = new Date().getDate(), left = dim - day + 1;
+  const spent = spentIn(mk), bal = balanceNow(), out = [];
+  if (!budget) out.push(bal > 0 ? `You have ${money(bal)} and no budget yet. Set one so each part has a limit.` : 'No money logged and no budget yet. Log what comes in, then set your budget.');
+  if (bal < 0) out.push(`Your logged balance is −${money(-bal)}. You've logged more spending than money, so check for a missing "Received" entry.`);
+  if (budget && bal >= 0 && bal < budget - spent) out.push(`You budgeted ${money(budget - spent)} more this month, but only have ${money(bal)}. Lower the budget or expect money soon.`);
+  if (day >= 3) CATS.out.forEach(([c]) => {
+    const p = parts[c] || 0, s = spentIn(mk, c);
+    if (!s) return;
+    const proj = s / day * dim;
+    if (p && s > p) out.push(`${c} is over its part by ${money(s - p)}. Move money from another part or cut back.`);
+    else if (p && proj > p * 1.1) out.push(`${c} is heading for ${moneyShort(Math.round(proj))} against a ${moneyShort(p)} part. Keep it near ${moneyShort(Math.max(0, Math.floor((p - s) / left)))} a day to stay inside.`);
+    else if (!p && budget) out.push(`${c} has ${money(s)} spent but no part. Give it some of your budget.`);
+  });
+  const recent = S.money.tx.filter(t => t.kind === 'out' && t.date.startsWith(mk));
+  const big = recent.filter(t => { const same = S.money.tx.filter(x => x.kind === 'out' && x.cat === t.cat); return same.length >= 5 && t.amount > 2.5 * sum(same.map(x => x.amount)) / same.length; })[0];
+  if (big) out.push(`"${big.note || big.cat}" (${money(big.amount)}) is much bigger than your usual ${big.cat} spend.`);
+  const need = 5 - S.money.tx.length;
+  if (!out.length && need > 0) out.push(`Log ${need} more ${need === 1 ? 'entry' : 'entries'} and suggestions get more useful. Right now there's too little to learn from.`);
+  if (!out.length) out.push('All your parts are on pace this month. Nothing to change.');
+  return out.slice(0, 4);
+}
+
+/* ----- live help while logging ----- */
+function updateTxHints() {
+  const f = $('tx-form'), hint = $('tx-hint'), verdict = $('tx-verdict');
+  hint.textContent = '';
+  if (txKind === 'out' && !catTouched) {
+    const p = predictCategory(f.note.value);
+    if (p && p.confidence >= .4) { f.cat.value = p.cat; hint.textContent = `Suggested part: ${p.cat} (${Math.round(p.confidence * 100)}% sure). Change it if that's wrong, and it learns.`; }
+  }
+  const amount = parseFloat(f.amount.value);
+  if (txKind !== 'out' || !(amount > 0)) { verdict.hidden = true; return; }
+  const bal = balanceNow(), mk = (f.date.value || dateKey()).slice(0, 7), isNow = mk === dateKey().slice(0, 7);
+  const part = (S.money.parts || {})[f.cat.value] || 0, after = part - spentIn(mk, f.cat.value) - amount;
+  const [y, mo] = mk.split('-').map(Number), daysLeft = new Date(y, mo, 0).getDate() - new Date().getDate();
+  let msg;
+  if (amount > bal) msg = `You've only logged ${money(Math.max(bal, 0))}. This leaves you ${money(amount - bal)} short, so wait or find a cheaper option.`;
+  else if (part && after < 0) msg = `This takes ${f.cat.value} ${money(-after)} over its part. Skip it, or take that from another part.`;
+  else if (part && isNow && daysLeft > 0 && after / daysLeft < 2) msg = `Tight: ${f.cat.value} would have ${money(after)} left for ${plural(daysLeft, 'day')}.`;
+  else if (part) msg = `Fine: ${f.cat.value} would still have ${money(after)} left${isNow && daysLeft > 0 ? `, about ${moneyShort(Math.floor(after / daysLeft))} a day` : ''}.`;
+  else msg = `You'd have ${money(bal - amount)} left overall. ${f.cat.value} has no budget part yet.`;
+  verdict.textContent = msg; verdict.hidden = false;
+}
 function fillCats() {
   $('tx-cat').innerHTML = CATS[txKind].map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
   document.querySelectorAll('#kind-toggle button').forEach(b => b.classList.toggle('active', b.dataset.kind === txKind));
+  catTouched = false;
+  updateTxHints();
 }
 function cumulative(mk, days, upTo) {
   const perDay = Array(days).fill(0);
@@ -1073,7 +1252,7 @@ function renderMoney() {
   const tx = S.money.tx.filter(t => t.date.startsWith(moneyMonth)).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   const spent = sum(tx.filter(t => t.kind === 'out').map(t => t.amount));
   const income = sum(tx.filter(t => t.kind === 'in').map(t => t.amount));
-  const budget = S.money.budget, left = budget - spent;
+  const budget = S.money.budget, left = budget - spent, bal = balanceNow(), parts = S.money.parts || {};
   const isCurrent = moneyMonth === dateKey().slice(0, 7);
   const daysInMonth = new Date(y, mo, 0).getDate(), prevDays = new Date(y, mo - 1, 0).getDate();
   const elapsed = isCurrent ? new Date().getDate() : daysInMonth;
@@ -1081,33 +1260,37 @@ function renderMoney() {
   const cur = cumulative(moneyMonth, daysInMonth, elapsed);
   const prev = cumulative(prevMk, prevDays, prevDays);
   const prevSamePoint = prev[Math.min(elapsed, prevDays) - 1] || 0;
+  const usable = budget ? Math.min(left, Math.max(bal, 0)) : Math.max(bal, 0);
 
+  $('money-setup').hidden = !!S.money.setupDone;
   $('money-stats').innerHTML = `
+    <div class="card"><div class="card-label">Balance now</div><div class="big">${bal < 0 ? '−' : ''}${moneyShort(Math.abs(bal))}</div><div class="delta">received <b>${moneyShort(income)}</b> in ${monthName}</div></div>
     <div class="card"><div class="card-label">Spent this month</div><div class="big">${moneyShort(spent)}</div><div class="delta">${pctChange(spent, prevSamePoint, prevName)}</div></div>
-    <div class="card"><div class="card-label">${left < 0 ? 'Over budget' : 'Left to spend'}</div><div class="big">${moneyShort(Math.abs(left))}</div><div class="bar"><i style="width:${Math.min(100, budget ? spent / budget * 100 : 0)}%"></i></div></div>
-    <div class="card"><div class="card-label">Safe per day</div><div class="big">${isCurrent && left > 0 ? moneyShort(Math.floor(left / daysLeft)) : '—'}</div><div class="delta">${isCurrent ? plural(daysLeft, 'day') + ' left' : 'past month'}</div></div>
-    <div class="card"><div class="card-label">Received</div><div class="big">${moneyShort(income)}</div><div class="delta">net <b>${income - spent >= 0 ? '+' : '−'}${moneyShort(Math.abs(income - spent))}</b></div></div>`;
+    <div class="card"><div class="card-label">${!budget ? 'Budget' : left < 0 ? 'Over budget' : 'Left to spend'}</div><div class="big">${budget ? moneyShort(Math.abs(left)) : 'Not set'}</div>${budget ? `<div class="bar"><i style="width:${Math.min(100, spent / budget * 100)}%"></i></div>` : '<div class="delta">set it when you\'re ready</div>'}</div>
+    <div class="card"><div class="card-label">Safe per day</div><div class="big">${isCurrent && usable > 0 ? moneyShort(Math.floor(usable / daysLeft)) : '—'}</div><div class="delta">${isCurrent ? plural(daysLeft, 'day') + ' left' : 'past month'}</div></div>`;
 
-  if (document.activeElement !== $('budget-input')) $('budget-input').value = budget;
   const expected = isCurrent ? Math.round(elapsed / daysInMonth * 100) : 100, used = budget ? Math.round(spent / budget * 100) : 0;
-  $('spend-head').innerHTML = `<div class="big">${money(spent)}</div><div class="delta"><b>${used}%</b> of budget used · ${isCurrent ? `${expected}% of the month gone — ${used <= expected ? 'on track' : 'ahead of pace'}` : 'month closed'}</div>`;
+  $('spend-head').innerHTML = `<div class="big">${money(spent)}</div><div class="delta">${budget ? `<b>${used}%</b> of ${moneyShort(budget)} used · ${isCurrent ? `${expected}% of the month gone — ${used <= expected ? 'on track' : 'ahead of pace'}` : 'month closed'}` : 'no budget set yet'}</div>`;
   const n = Math.max(daysInMonth, prevDays);
   const pace = Array.from({ length: daysInMonth }, (_, i) => budget * (i + 1) / daysInMonth);
   $('spend-chart').innerHTML = glowChart({
     n,
-    top: [{ values: pace, color: '#93c5fd', dashed: true }, { values: cur, color: '#2563eb' }],
+    top: [...(budget ? [{ values: pace, color: '#93c5fd', dashed: true }] : []), { values: cur, color: '#2563eb' }],
     bottom: [{ values: prev, color: '#b8c3d9' }],
     labels: [1, 8, 15, 22, 29].filter(d => d <= n).map(d => [d - 1, `${d} ${monthName.slice(0, 3)}`]),
     fmt: v => compact(v),
-    legend: [['#2563eb', `${monthName} spending`], ['#93c5fd', 'Budget pace', true], ['#b8c3d9', prevName]],
+    legend: [['#2563eb', `${monthName} spending`], ...(budget ? [['#93c5fd', 'Budget pace', true]] : []), ['#b8c3d9', prevName]],
   });
+
+  $('insights').innerHTML = moneyInsights().map(t => `<div class="insight">${icon('bulb', 16)}<span>${esc(t)}</span></div>`).join('');
 
   const byCat = {};
   tx.filter(t => t.kind === 'out').forEach(t => { byCat[t.cat] = (byCat[t.cat] || 0) + t.amount; });
-  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
-  $('cats').innerHTML = cats.length ? cats.map(([name, v]) =>
-    `<div class="cat-row" style="--c:${catColor('out', name)}"><span class="dot"></span><span>${esc(name)}</span><span class="mono" style="font-size:12.5px">${money(v)}</span><div class="bar"><i style="width:${v / spent * 100}%"></i></div></div>`).join('')
-    : '<div class="empty">No spending logged this month.</div>';
+  const rows = CATS.out.map(([c]) => [c, byCat[c] || 0, parts[c] || 0]).filter(([, s, p]) => s || p).sort((a, b) => (b[2] - a[2]) || (b[1] - a[1]));
+  const top = Math.max(1, ...rows.map(r => r[1]));
+  $('cats').innerHTML = rows.length ? rows.map(([name, s, p]) =>
+    `<div class="cat-row ${p && s > p ? 'over' : ''}" style="--c:${catColor('out', name)}"><span class="dot"></span><span>${esc(name)}</span><span class="mono" style="font-size:12.5px">${money(s)}${p ? ` / ${moneyShort(p)}` : ''}</span><div class="bar"><i style="width:${p ? Math.min(100, s / p * 100) : s / top * 100}%"></i></div></div>`).join('')
+    : '<div class="empty">No parts yet. Set your budget to split it into Food, Studies, Miscellaneous and more.</div>';
 
   $('tx-count').textContent = tx.length || '';
   let html = '', lastDay = '';
@@ -1123,6 +1306,71 @@ function renderMoney() {
       <button class="x-btn" data-act="tx-del" data-id="${t.id}" aria-label="Delete entry">${icon('x', 14)}</button></div>`;
   });
   $('tx-list').innerHTML = html || '<div class="empty">Nothing logged for this month yet. Every cedi counts.</div>';
+}
+
+/* ----- budget setup dialog (first run and later edits) ----- */
+function openBudget(first) {
+  closeOverlay();
+  const m = S.money, parts = m.parts || {};
+  const o = document.createElement('div');
+  o.className = 'overlay center';
+  o.innerHTML = `<form class="sheet setup" data-form="setup" role="dialog" aria-modal="true" autocomplete="off">
+    ${first ? '' : `<button type="button" class="icon-btn close" data-act="close" aria-label="Close">${icon('x', 16)}</button>`}
+    <div class="sheet-title">${first ? 'Set up your money' : 'Your budget'}</div>
+    <div class="now-sub">${first ? 'Start from what you really have. Zero is fine.' : 'Change these whenever you need to.'}</div>
+    <div class="setup-grid">
+      <label>What you have right now (GH₵)<input class="input" name="balance" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${m.setupDone ? Math.max(0, Math.round(balanceNow() * 100) / 100) : ''}" /></label>
+      <label>Still expected this month (GH₵)<input class="input" name="expected" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${m.expected || ''}" /></label>
+    </div>
+    <div class="suggest"><div>${icon('bulb', 16)}<span id="sg-why"></span></div><button type="button" class="btn ghost sm" id="sg-use"></button></div>
+    <label class="setup-budget">Monthly budget (GH₵)<input class="input" name="budget" type="number" min="0" step="1" inputmode="numeric" placeholder="0" value="${m.budget || ''}" /></label>
+    <div class="card-label" style="margin-top:14px">Budget parts</div>
+    <div class="parts">${CATS.out.map(([c]) => `<label style="--c:${catColor('out', c)}"><span class="dot"></span><span>${esc(c)}</span><input class="input" data-part="${esc(c)}" type="number" min="0" step="1" inputmode="numeric" placeholder="0" value="${parts[c] || ''}" /></label>`).join('')}</div>
+    <div class="add-row" style="margin:10px 0 0"><input class="input" id="part-new" placeholder="Add your own part, e.g. Gym" maxlength="30" style="margin:0" /><button type="button" class="btn ghost" id="part-add" style="flex-shrink:0">Add part</button></div>
+    <div class="delta" id="sg-left"></div>
+    <div class="setup-actions">
+      ${first ? '<button type="button" class="btn ghost" data-act="setup-later">Later</button>' : ''}
+      <button class="btn">Save</button>
+    </div>
+  </form>`;
+  document.body.appendChild(o);
+  const f = o.querySelector('form'), partInputs = [...f.querySelectorAll('[data-part]')];
+  let touched = Object.keys(parts).length > 0, sg;
+  const showLeft = () => {
+    const total = parseFloat(f.budget.value) || 0, used = sum(partInputs.map(i => parseFloat(i.value) || 0)), rest = total - used;
+    $('sg-left').innerHTML = rest > 0 ? `<b>${moneyShort(rest)}</b> not assigned yet. It goes to Miscellaneous when you save.` : rest < 0 ? `<b>${moneyShort(-rest)}</b> too much. Parts add up to more than the budget.` : total ? '<b>All assigned.</b>' : '';
+  };
+  const applyParts = (total, shares) => { const p = splitBudget(total, shares); partInputs.forEach(i => { i.value = p[i.dataset.part] || ''; }); touched = false; showLeft(); };
+  const refresh = () => {
+    sg = suggestBudget(Math.max(0, parseFloat(f.balance.value) || 0) + Math.max(0, parseFloat(f.expected.value) || 0));
+    $('sg-why').textContent = sg.why;
+    $('sg-use').textContent = `Use ${moneyShort(sg.total)}`;
+    $('sg-use').hidden = !sg.total;
+    showLeft();
+  };
+  f.balance.addEventListener('input', refresh);
+  f.expected.addEventListener('input', refresh);
+  f.budget.addEventListener('input', () => { if (!touched) applyParts(parseFloat(f.budget.value) || 0, sg.shares); else showLeft(); });
+  partInputs.forEach(i => i.addEventListener('input', () => { touched = true; showLeft(); }));
+  $('sg-use').addEventListener('click', () => { f.budget.value = sg.total; applyParts(sg.total, sg.shares); });
+  const addPart = () => {
+    const name = $('part-new').value.trim();
+    if (!name) return;
+    if (CATS.out.some(c => c[0].toLowerCase() === name.toLowerCase())) { toast('You already have that part'); return; }
+    (m.customParts = m.customParts || []).push(name); save('money'); syncCustomParts(); fillCats();
+    const row = document.createElement('label');
+    row.style.setProperty('--c', catColor('out', name));
+    row.innerHTML = `<span class="dot"></span><span>${esc(name)}</span><input class="input" data-part="${esc(name)}" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />`;
+    f.querySelector('.parts').appendChild(row);
+    const inp = row.querySelector('input');
+    inp.addEventListener('input', () => { touched = true; showLeft(); });
+    partInputs.push(inp);
+    $('part-new').value = ''; inp.focus();
+  };
+  $('part-add').addEventListener('click', addPart);
+  $('part-new').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addPart(); } });
+  refresh();
+  if (first) f.balance.focus();
 }
 
 /* ================= COMMAND PALETTE ================= */
@@ -1220,6 +1468,9 @@ const ACTIONS = {
 
   month: el => { const [y, m] = moneyMonth.split('-').map(Number); moneyMonth = monthKey(y, m - 1 + +el.dataset.step); renderMoney(); },
   kind: el => { txKind = el.dataset.kind; fillCats(); },
+  'budget-edit': () => openBudget(false),
+  'budget-setup': () => openBudget(true),
+  'setup-later': () => { S.money.setupDismissed = true; save('money'); closeOverlay(); render(); },
   'tx-del': el => { S.money.tx = S.money.tx.filter(t => t.id !== el.dataset.id); save('money'); render(); },
 
   export: () => {
@@ -1252,15 +1503,27 @@ const FORMS = {
     logPages(b, page); render();
   },
   goal: f => { const g = parseInt(f.goal.value, 10); if (g > 0) { S.settings.readingGoal = g; save('settings'); renderBooks(); } },
-  budget: f => { const v = parseFloat(f.budget.value); if (v >= 0) { S.money.budget = v; save('money'); renderMoney(); toast('Budget set'); } },
+  setup: f => {
+    const inputs = [...f.querySelectorAll('[data-part]')], budget = Math.max(0, parseFloat(f.budget.value) || 0), parts = {};
+    inputs.forEach(i => { const v = parseFloat(i.value) || 0; if (v > 0) parts[i.dataset.part] = v; });
+    const rest = budget - sum(Object.values(parts));
+    if (rest < 0) { toast('Your parts add up to more than the budget'); return; }
+    if (rest > 0) parts.Miscellaneous = (parts.Miscellaneous || 0) + rest;
+    const m = S.money;
+    m.opening = (parseFloat(f.balance.value) || 0) - netOf(m.tx);
+    m.expected = parseFloat(f.expected.value) || 0;
+    m.budget = budget; m.parts = parts; m.setupDone = true;
+    save('money'); closeOverlay(); render();
+    toast(budget ? 'Budget saved' : 'Saved. Set a budget when you are ready');
+  },
   tx: f => {
     const amount = Math.round(parseFloat(f.amount.value) * 100) / 100;
     if (!(amount > 0) || !f.date.value) return;
     S.money.tx.push({ id: uid(), kind: txKind, amount, cat: f.cat.value, note: f.note.value.trim(), date: f.date.value, createdAt: new Date().toISOString() });
     save('money');
     moneyMonth = f.date.value.slice(0, 7);
-    f.amount.value = ''; f.note.value = '';
-    render(); f.amount.focus();
+    f.amount.value = ''; f.note.value = ''; catTouched = false;
+    render(); updateTxHints(); f.amount.focus();
     toast((txKind === 'in' ? 'Received ' : 'Spent ') + money(amount));
   },
 };
@@ -1277,8 +1540,8 @@ function importBackup(file) {
       const data = JSON.parse(reader.result);
       if (data.app !== 'aigu') throw new Error('not an AIGU backup');
       if (!confirm('Replace everything on this device with this backup?')) return;
-      ['tasks', 'books', 'reading', 'money', 'habits', 'settings'].forEach(k => { if (data[k]) { S[k] = data[k]; save(k); } });
-      go(S.settings.view); toast('Backup restored');
+      ['tasks', 'books', 'reading', 'money', 'habits', 'settings'].forEach(k => { if (data[k]) { S[k] = k === 'money' ? migrateMoney(data[k]) : data[k]; save(k); } });
+      syncCustomParts(); fillCats(); go(S.settings.view); toast('Backup restored');
     } catch (e) { toast('That file is not a valid AIGU backup'); }
   };
   reader.readAsText(file);
@@ -1286,8 +1549,9 @@ function importBackup(file) {
 
 /* ================= INIT ================= */
 function init() {
-  buildChrome(); fillCats();
+  buildChrome();
   document.querySelector('#tx-form [name="date"]').value = dateKey();
+  fillCats();
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.sb-foot')) $('menu').hidden = true;
@@ -1304,12 +1568,13 @@ function init() {
   });
   $('task-date').addEventListener('change', e => { if (e.target.value) { taskDate = e.target.value; renderTasks(); } });
   $('goal-input').addEventListener('change', e => FORMS.goal(e.target.form));
-  $('budget-input').addEventListener('change', e => FORMS.budget(e.target.form));
+  $('tx-form').addEventListener('input', e => { if (e.target.name === 'cat') catTouched = true; updateTxHints(); });
   $('import-file').addEventListener('change', e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; $('menu').hidden = true; });
   window.addEventListener('hashchange', () => go(location.hash.slice(1)));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
 
   go(location.hash.slice(1) || S.settings.view);
+  if (!S.money.setupDone && !S.money.setupDismissed) openBudget(true);
   setInterval(tick, 30000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
