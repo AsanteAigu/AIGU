@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aigu-os-v10';
+const CACHE_NAME = 'aigu-os-v11';
 const CACHE_URLS = ['./', './index.html', './manifest.json', './AIGU.png', './icons/icon-192.png', './icons/favicon.png', './favicon.ico'];
 
 self.addEventListener('install', event => {
@@ -40,5 +40,18 @@ self.addEventListener('fetch', event => {
   // Everything else (fonts, icons): cache first
   event.respondWith(
     caches.match(req).then(cached => cached || fetch(req).then(res => putInCache(req, res)))
+  );
+});
+
+// Tapping a reminder opens AIGU (or focuses it if it is already open)
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || './', self.registration.scope).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      const win = list.find(c => c.url.startsWith(self.registration.scope));
+      if (win) return win.navigate(url).then(c => (c || win).focus()).catch(() => win.focus());
+      return self.clients.openWindow(url);
+    })
   );
 });

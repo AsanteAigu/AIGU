@@ -285,6 +285,22 @@
     .parts .input { margin: 0; height: 34px; border-radius: 9px; }
     .setup-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; position: sticky; bottom: -26px; background: var(--panel); padding: 10px 0; }
 
+    /* ================= REMINDERS ================= */
+    .icon-btn.bell.on { color: var(--blue); background: var(--blue-soft); }
+    .rem-note { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--blue-soft); color: var(--navy); font-size: 13px; }
+    .rem-note svg { flex-shrink: 0; color: var(--blue); }
+    .rem-note .btn { margin-left: auto; flex-shrink: 0; }
+    .rem-list { margin: 16px 0 12px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .rem-list .rem-row { padding: 11px 14px; }
+    .rem-list .rem-row + .rem-row { border-top: 1px solid var(--line); }
+    .sheet .rem-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+    .sheet .rem-row b { display: block; font-weight: 500; font-size: 14px; }
+    .sheet .rem-row small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .switch { appearance: none; -webkit-appearance: none; width: 40px; height: 24px; border-radius: 999px; background: var(--line-2); position: relative; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+    .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(11,21,48,.25); transition: transform .15s; }
+    .switch:checked { background: var(--blue); }
+    .switch:checked::after { transform: translateX(16px); }
+
     /* ================= OVERLAYS ================= */
     .overlay { position: fixed; inset: 0; z-index: 100; background: rgba(11,21,48,.32); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: grid; place-items: start center; padding: 12vh 16px 16px; animation: fade .15s ease; }
     .overlay.center { place-items: center; padding: 16px; }
@@ -371,6 +387,7 @@
       <div class="who"><b>Gabriel Kwaku Asante</b><span>CPEN · Level 300</span></div>
       <button class="icon-btn" data-act="menu" aria-label="Backup menu" data-icon="dots"></button>
       <div class="menu" id="menu" hidden>
+        <button data-act="reminders" data-icon="bell">Reminders &amp; alarms</button>
         <button data-act="export" data-icon="download">Export backup</button>
         <label data-icon="upload">Import backup<input type="file" accept="application/json" id="import-file" hidden /></label>
         <p>Everything is saved on this device only. Export a backup now and then.</p>
@@ -383,7 +400,7 @@
     <div class="topbar">
       <button class="icon-btn hamb" data-act="nav-open" aria-label="Open menu" data-icon="menu"></button>
       <div class="crumb" id="crumb"></div>
-      <div class="right"><span class="live-pill"><i></i><span id="clock">--:--</span></span></div>
+      <div class="right"><button class="icon-btn bell" id="bell-btn" data-act="reminders" aria-label="Reminders" data-icon="bell"></button><span class="live-pill"><i></i><span id="clock">--:--</span></span></div>
     </div>
 
     <!-- ============ TODAY ============ -->
@@ -583,6 +600,7 @@ const ICONS = {
   play: '<path d="M8 5v14l11-7z"/>',
   flag: '<path d="M5 21V4m0 0h11l-2 4 2 4H5"/>',
   bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   wallet: '<rect x="2" y="6" width="20" height="14" rx="3"/><path d="M16 13h2M2 10h20"/>',
 };
 function icon(name, size = 18, sw = 1.7) {
@@ -1424,6 +1442,162 @@ function tick() {
   if (S.settings.view === 'week') renderWeek();
 }
 
+/* ================= REMINDERS ================= */
+// No server, so alarms fire from this page via the service worker while the app is open or
+// recently in the background. The calendar export covers the times the app is fully closed.
+const REM_KEY = 'aigu-notified-v1';
+const remCfg = () => Object.assign({ on: false, lead: 10, classes: true, plan: true, nudge: true, sound: true }, S.settings.remind);
+const notifSupported = () => 'Notification' in window && 'serviceWorker' in navigator;
+let audioCtx = null;
+function unlockAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+}
+function chime() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const t0 = audioCtx.currentTime;
+  [0, .28, .56].forEach((dt, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = i === 2 ? 1046 : 880;
+    g.gain.setValueAtTime(0, t0 + dt);
+    g.gain.linearRampToValueAtTime(.25, t0 + dt + .02);
+    g.gain.exponentialRampToValueAtTime(.001, t0 + dt + .24);
+    o.connect(g).connect(audioCtx.destination); o.start(t0 + dt); o.stop(t0 + dt + .26);
+  });
+}
+async function notify(title, body, opts = {}) {
+  if (!document.hidden) { toast(title + ' — ' + body); if (remCfg().sound) chime(); }
+  if (navigator.vibrate) navigator.vibrate([300, 120, 300, 120, 500]);
+  if (!notifSupported() || Notification.permission !== 'granted') return;
+  const options = {
+    body, tag: opts.tag || 'aigu', renotify: true, requireInteraction: !!opts.sticky,
+    icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', vibrate: [300, 120, 300, 120, 500],
+    data: { url: './#' + (opts.view || 'today') },
+  };
+  try { (await navigator.serviceWorker.ready).showNotification(title, options); }
+  catch (e) { try { new Notification(title, options); } catch (_) {} }
+}
+function checkReminders() {
+  const cfg = remCfg();
+  if (!cfg.on) return;
+  const k = dateKey(), m = nowMin();
+  let log = load(REM_KEY, {});
+  if (log.date !== k) log = { date: k, keys: [] };
+  const fire = (key, ...args) => { if (log.keys.includes(key)) return; log.keys.push(key); notify(...args); };
+  WEEK[todayIdx()].forEach(b => {
+    const isClass = b.type === 'class';
+    if (isClass ? !cfg.classes : (!cfg.plan || b.type === 'rest')) return;
+    const s = toMin(b.start), at = s - cfg.lead;
+    if (m < at || m > s) return; // only inside the reminder window, never a backlog of old ones
+    const when = s - m <= 0 ? 'Starting now' : 'In ' + dur(s - m);
+    const body = `${when} · ${b.start}–${b.end}` + (isClass ? ` · ${b.venue}` : b.sub ? ` · ${b.sub}` : '');
+    fire(`${b.start}|${b.title}`, isClass ? `${b.code} · ${b.sub}` : b.title, body, { tag: 'blk-' + b.start, sticky: isClass, view: 'today' });
+  });
+  if (cfg.nudge && m >= 21 * 60) {
+    const open = S.tasks.filter(t => t.date === k && !t.done).length;
+    const habits = S.habits.list.length - (S.habits.log[k] || []).filter(id => S.habits.list.some(h => h.id === id)).length;
+    if (open || habits) fire('nudge', 'Evening check-in', [open && plural(open, 'task') + ' still open', habits && plural(habits, 'habit') + ' left'].filter(Boolean).join(' · '), { tag: 'nudge', view: 'tasks' });
+  }
+  try { localStorage.setItem(REM_KEY, JSON.stringify(log)); } catch (e) {}
+}
+function setRemind(patch) {
+  S.settings.remind = Object.assign(remCfg(), patch); save('settings');
+  renderBell();
+}
+async function enableReminders() {
+  unlockAudio();
+  if (!notifSupported()) { setRemind({ on: true }); openReminders(); toast('In-app alarms on. Add AIGU to your home screen for phone notifications.'); return; }
+  const p = await Notification.requestPermission();
+  setRemind({ on: p === 'granted' || remCfg().on });
+  openReminders();
+  if (p === 'granted') notify('Reminders are on', `You will be alerted ${remCfg().lead ? remCfg().lead + ' min before' : 'at the start of'} each block.`, { tag: 'test' });
+  else toast('Notifications blocked — allow them in your browser site settings');
+}
+function renderBell() {
+  const b = $('bell-btn'); if (!b) return;
+  const on = remCfg().on;
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-label', on ? 'Reminders on' : 'Reminders off');
+}
+
+// .ics with weekly repeats and alarms, so the phone's own calendar rings even when AIGU is closed
+function buildIcs(all, until) {
+  const pad = n => String(n).padStart(2, '0');
+  const utc = d => d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + '00Z';
+  const icsEsc = s => String(s || '').replace(/[\\;,]/g, c => '\\' + c).replace(/\n/g, '\\n');
+  const lead = remCfg().lead, stamp = utc(new Date()), end = new Date(until + 'T23:59:00');
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AIGU//Semester OS//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:AIGU ' + (all ? 'plan' : 'classes')];
+  WEEK.forEach((blocks, d) => blocks.forEach(b => {
+    if (b.type !== 'class' && (!all || b.type === 'rest')) return;
+    const first = parseDate(dateKey()); first.setDate(first.getDate() + (d - todayIdx() + 7) % 7);
+    const [sh, sm] = b.start.split(':').map(Number), [eh, em] = b.end.split(':').map(Number);
+    const s = new Date(first), e = new Date(first);
+    s.setHours(sh, sm, 0, 0); e.setHours(eh, em, 0, 0);
+    if (s > end) return;
+    lines.push('BEGIN:VEVENT', `UID:aigu-${d}-${b.start.replace(':', '')}-${uid()}@aigu`, 'DTSTAMP:' + stamp,
+      'DTSTART:' + utc(s), 'DTEND:' + utc(e), 'RRULE:FREQ=WEEKLY;UNTIL=' + utc(end),
+      'SUMMARY:' + icsEsc(b.type === 'class' ? `${b.code} · ${b.sub}` : b.title),
+      ...(b.type === 'class' ? ['LOCATION:' + icsEsc(b.venue), 'DESCRIPTION:' + icsEsc(b.lecturer)] : b.sub ? ['DESCRIPTION:' + icsEsc(b.sub)] : []),
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(b.title), `TRIGGER:-PT${lead}M`, 'END:VALARM', 'END:VEVENT');
+  }));
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadIcs(all) {
+  const until = ($('rem-until') && $('rem-until').value) || addDays(dateKey(), 56);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buildIcs(all, until)], { type: 'text/calendar' }));
+  a.download = all ? 'aigu-full-plan.ics' : 'aigu-classes.ics';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Calendar file downloaded. Open it to add the alarms');
+}
+
+function openReminders() {
+  closeOverlay(); unlockAudio();
+  const cfg = remCfg(), perm = notifSupported() ? Notification.permission : 'unsupported';
+  const sw = (key, label, hint) => `<label class="rem-row"><span><b>${label}</b><small>${hint}</small></span><input type="checkbox" class="switch" data-rem="${key}" ${cfg[key] ? 'checked' : ''} /></label>`;
+  const status = perm === 'granted' ? '' : perm === 'denied'
+    ? `<div class="rem-note">${icon('bell', 16)}<span>Notifications are blocked for this site. Allow them in your browser's site settings (lock icon → Notifications), then come back.</span></div>`
+    : perm === 'unsupported'
+      ? `<div class="rem-note">${icon('bell', 16)}<span>This browser can't show notifications here. On iPhone, tap Share → <b>Add to Home Screen</b> and open AIGU from there. In-app alarms still ring while AIGU is open.</span></div>`
+      : `<div class="rem-note">${icon('bell', 16)}<span>Allow notifications so AIGU can alert your phone before classes and study blocks.</span><button type="button" class="btn sm" data-act="rem-enable">Allow</button></div>`;
+  const o = document.createElement('div');
+  o.className = 'overlay center';
+  o.innerHTML = `<div class="sheet setup" role="dialog" aria-modal="true">
+    <button type="button" class="icon-btn close" data-act="close" aria-label="Close">${icon('x', 16)}</button>
+    <div class="sheet-title">Reminders</div>
+    <div class="now-sub">Alarms for your timetable, sent to this phone.</div>
+    ${status}
+    <div class="rem-list">
+      ${sw('on', 'Reminders on', 'Notification, vibration and sound')}
+      <label class="rem-row"><span><b>Alert me</b><small>Before each block starts</small></span>
+        <select class="select" data-rem="lead" style="width:auto;height:34px">${[0, 5, 10, 15, 30].map(n => `<option value="${n}" ${cfg.lead === n ? 'selected' : ''}>${n ? n + ' min before' : 'At start'}</option>`).join('')}</select></label>
+      ${sw('classes', 'Classes', 'Stays on screen until you dismiss it')}
+      ${sw('plan', 'Study & routine blocks', 'Reviews, study sessions, reading, church…')}
+      ${sw('nudge', 'Evening check-in', '21:00 nudge if tasks or habits are left')}
+      ${sw('sound', 'Sound', 'Chime when AIGU is open on screen')}
+    </div>
+    <button type="button" class="btn ghost sm" data-act="rem-test">Send a test alert</button>
+    <div class="card-label" style="margin-top:22px">When AIGU is closed</div>
+    <div class="now-sub" style="font-size:13px">Phones stop web apps that are closed, so AIGU can't ring on its own then. Add your timetable to your phone's calendar and it will ring every week, even offline.</div>
+    <label class="rem-row" style="margin-top:12px"><span><b>Repeat until</b><small>End of semester</small></span><input type="date" class="input" id="rem-until" value="${addDays(dateKey(), 56)}" style="width:150px;height:34px;margin:0" /></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button type="button" class="btn sm" data-act="rem-ics" data-all="0">${icon('download', 15)}Classes only</button>
+      <button type="button" class="btn ghost sm" data-act="rem-ics" data-all="1">${icon('download', 15)}Full plan</button>
+    </div>
+    <div class="delta" style="margin-top:10px">iPhone: tap the file → Add All. Android: open it with your calendar app, or import it at calendar.google.com and set that calendar's default notification.</div>
+  </div>`;
+  o.addEventListener('click', e => { if (e.target === o) closeOverlay(); });
+  o.addEventListener('change', e => {
+    const key = e.target.dataset.rem; if (!key) return;
+    if (key === 'lead') return setRemind({ lead: +e.target.value });
+    if (key === 'on' && e.target.checked && notifSupported() && Notification.permission === 'default') return enableReminders();
+    setRemind({ [key]: e.target.checked });
+  });
+  document.body.appendChild(o);
+}
+
 /* ================= ACTIONS ================= */
 const findTask = id => S.tasks.find(t => t.id === id);
 const findBook = id => S.books.find(b => b.id === id);
@@ -1436,6 +1610,10 @@ const ACTIONS = {
   palette: () => { document.body.classList.remove('nav-open'); openPalette(); },
   pal: el => runPal(palItems[+el.dataset.i]),
   close: closeOverlay,
+  reminders: () => { $('menu').hidden = true; document.body.classList.remove('nav-open'); openReminders(); },
+  'rem-enable': () => enableReminders(),
+  'rem-test': () => { unlockAudio(); notify('Test alert', 'This is how AIGU reminders look on this device.', { tag: 'test' }); },
+  'rem-ics': el => downloadIcs(el.dataset.all === '1'),
   block: el => openBlock(+el.dataset.day, +el.dataset.i),
   mday: el => { mobileDay = +el.dataset.day; renderWeek(); },
   'week-mode': el => { S.settings.weekMode = el.dataset.mode; save('settings'); renderWeek(); },
@@ -1571,11 +1749,14 @@ function init() {
   $('tx-form').addEventListener('input', e => { if (e.target.name === 'cat') catTouched = true; updateTxHints(); });
   $('import-file').addEventListener('change', e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; $('menu').hidden = true; });
   window.addEventListener('hashchange', () => go(location.hash.slice(1)));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); checkReminders(); } });
+  document.addEventListener('pointerdown', unlockAudio, { once: true });
 
   go(location.hash.slice(1) || S.settings.view);
   if (!S.money.setupDone && !S.money.setupDismissed) openBudget(true);
   setInterval(tick, 30000);
+  renderBell(); checkReminders();
+  setInterval(checkReminders, 15000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 document.addEventListener('DOMContentLoaded', init);
